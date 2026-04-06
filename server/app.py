@@ -51,7 +51,9 @@ app = create_app(
     env_name="rveda",
     max_concurrent_envs=1,  # increase this number to allow more concurrent WebSocket sessions
 )
-
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 def main(host: str = "0.0.0.0", port: int = 7860):
     """
