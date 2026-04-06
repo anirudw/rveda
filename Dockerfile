@@ -80,4 +80,9 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Run the FastAPI server
 # The module path is constructed to work with the /app/env structure
-CMD ["sh", "-c", "cd /app/env && uvicorn server.app:app --host 0.0.0.0 --port 7860"]
+# Ensure we are using the internal HF port variable
+ENV PORT=7860
+EXPOSE 7860
+
+# Use the 'exec' form of CMD for better signal handling
+CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "7860"]
