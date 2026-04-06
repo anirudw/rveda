@@ -4,13 +4,15 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-"""Rveda Environment."""
+"""Rveda environment."""
 
 from .client import RvedaEnv
-from .models import RvedaAction, RvedaObservation
+from .models import MedicalAction, MedicalActionType, MedicalObservation, SearchResult
 
 __all__ = [
-    "RvedaAction",
-    "RvedaObservation",
+    "MedicalAction",
+    "MedicalActionType",
+    "MedicalObservation",
     "RvedaEnv",
+    "SearchResult",
 ]

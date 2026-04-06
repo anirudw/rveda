@@ -26,6 +26,9 @@ dependencies = [
     # "gymnasium>=0.29.0",
     # "openspiel>=1.0.0",
     # "smolagents>=1.22.0,<2",
+    "pandas>=2.3.3",
+    "scikit-learn>=1.7.2",
+    "simple-icd-10-cm>=1.5.0",
 ]
 
 [project.optional-dependencies]

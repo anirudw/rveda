@@ -5,23 +5,53 @@
 # LICENSE file in the root directory of this source tree.
 
 """
-Data models for the Rveda Environment.
+Data models for the Rveda environment.
 
-The rveda environment is a simple test environment that echoes back messages.
+These models define the action and observation payloads used by the medical
+coding workflow in the OpenEnv environment.
 """
 
+from enum import Enum
+
 from openenv.core.env_server.types import Action, Observation
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 
-class RvedaAction(Action):
-    """Action for the Rveda environment - just a message to echo."""
+class MedicalActionType(str, Enum):
+    """Supported agent actions in the medical workflow."""
 
-    message: str = Field(..., description="Message to echo back")
+    SEARCH = "SEARCH"
+    DETAILS = "DETAILS"
+    SUBMIT = "SUBMIT"
 
 
-class RvedaObservation(Observation):
-    """Observation from the Rveda environment - the echoed message."""
+class MedicalAction(Action):
+    """Action payload sent by the agent."""
 
-    echoed_message: str = Field(default="", description="The echoed message")
-    message_length: int = Field(default=0, description="Length of the echoed message")
+    action_type: MedicalActionType = Field(
+        ..., description="Type of medical workflow action to perform"
+    )
+    query: str = Field(..., description="Search term, code, or submission payload")
+
+
+class SearchResult(BaseModel):
+    """Structured search result returned to the agent."""
+
+    code: str = Field(..., description="Medical code identifier")
+    short_desc: str = Field(..., description="Short description for the code")
+
+
+class MedicalObservation(Observation):
+    """Observation payload returned by the environment."""
+
+    patient_note: str = Field(default="", description="Current patient note context")
+    search_results: list[SearchResult] = Field(
+        default_factory=list,
+        description="Candidate search results with code identifiers and short descriptions",
+    )
+    detailed_info: str = Field(
+        default="", description="Detailed information for the selected medical code"
+    )
+    current_reward: float = Field(
+        default=0.0, description="Current reward accumulated in the episode"
+    )

@@ -1,0 +1,20 @@
+[
+  {
+    "task_id": "easy_endocrine_1",
+    "difficulty": "easy",
+    "patient_note": "Patient is a 45-year-old male presenting for a routine checkup. He has a history of Type 2 diabetes, currently managed with Metformin. No current complications reported.",
+    "target_code": "E11.9"
+  },
+  {
+    "task_id": "medium_endocrine_1",
+    "difficulty": "medium",
+    "patient_note": "55-year-old female with Type 2 diabetes presents complaining of bilateral tingling and numbness in her lower extremities. Examination is consistent with diabetic neuropathy.",
+    "target_code": "E11.40"
+  },
+  {
+    "task_id": "hard_endocrine_1",
+    "difficulty": "hard",
+    "patient_note": "Patient presents for diabetes management. Labs confirm Type 2 diabetes. GFR indicates Stage 3 chronic kidney disease directly secondary to the diabetes.",
+    "target_code": "E11.22"
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "code": "E11.9",
+    "short_desc": "Type 2 diabetes mellitus without complications",
+    "long_desc": "Type 2 diabetes mellitus without any specified complications.",
+    "excludes": "Excludes1: Type 1 diabetes (E10.-)"
+  },
+  {
+    "code": "E11.40",
+    "short_desc": "Type 2 diabetes with diabetic neuropathy",
+    "long_desc": "Type 2 diabetes mellitus with unspecified diabetic neuropathy.",
+    "excludes": "Excludes1: Type 1 diabetes with neuropathy (E10.40)"
+  },
+  {
+    "code": "E11.22",
+    "short_desc": "Type 2 diabetes with diabetic chronic kidney disease",
+    "long_desc": "Type 2 diabetes mellitus with diabetic chronic kidney disease. Use additional code to identify stage of chronic kidney disease (N18.1-N18.6).",
+    "excludes": "Excludes1: Type 1 diabetes with CKD (E10.22)"
+  },
+  {
+    "code": "N18.3",
+    "short_desc": "Chronic kidney disease, stage 3 (moderate)",
+    "long_desc": "Chronic kidney disease, stage 3 (moderate).",
+    "excludes": "Excludes1: acute kidney failure (N17.-)"
+  },
+  {
+    "code": "E10.9",
+    "short_desc": "Type 1 diabetes mellitus without complications",
+    "long_desc": "Type 1 diabetes mellitus without complications.",
+    "excludes": "Excludes1: Type 2 diabetes (E11.-)"
+  }
+]

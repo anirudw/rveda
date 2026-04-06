@@ -5,38 +5,31 @@
 # LICENSE file in the root directory of this source tree.
 
 """
-Rveda Environment Implementation.
+Rveda environment implementation.
 
-A simple test environment that echoes back messages sent to it.
-Perfect for testing HTTP server infrastructure.
+This environment exposes a task-driven medical-coding workflow backed by the
+local ICD-10 SQLite engine.
 """
 
+import json
+import random
+from pathlib import Path
 from uuid import uuid4
 
 from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
 
 try:
-    from ..models import RvedaAction, RvedaObservation
+    from ..models import MedicalAction, MedicalActionType, MedicalObservation, SearchResult
+    from .engine import get_code_details, initialize_db, search_codes
 except ImportError:
-    from models import RvedaAction, RvedaObservation
+    from models import MedicalAction, MedicalActionType, MedicalObservation, SearchResult
+    from server.engine import get_code_details, initialize_db, search_codes
 
 
 class RvedaEnvironment(Environment):
     """
-    A simple echo environment that echoes back messages.
-
-    This environment is designed for testing the HTTP server infrastructure.
-    It maintains minimal state and simply echoes back whatever message it receives.
-
-    Example:
-        >>> env = RvedaEnvironment()
-        >>> obs = env.reset()
-        >>> print(obs.echoed_message)  # "Rveda environment ready!"
-        >>>
-        >>> obs = env.step(RvedaAction(message="Hello"))
-        >>> print(obs.echoed_message)  # "Hello"
-        >>> print(obs.message_length)  # 5
+    A task-driven medical-coding environment.
     """
 
     # Enable concurrent WebSocket sessions.
@@ -46,51 +39,101 @@ class RvedaEnvironment(Environment):
     SUPPORTS_CONCURRENT_SESSIONS: bool = True
 
     def __init__(self):
-        """Initialize the rveda environment."""
+        """Initialize the Rveda environment."""
+        initialize_db()
         self._state = State(episode_id=str(uuid4()), step_count=0)
-        self._reset_count = 0
+        self._tasks = self._load_tasks()
+        self._current_task: dict[str, str] | None = None
+        self._patient_note = ""
+        self._search_results: list[SearchResult] = []
+        self._detailed_info = ""
 
-    def reset(self) -> RvedaObservation:
+    def _load_tasks(self) -> list[dict[str, str]]:
+        tasks_path = Path(__file__).resolve().parent.parent / "tasks.json"
+        with tasks_path.open("r", encoding="utf-8") as fh:
+            tasks = json.load(fh)
+        return tasks
+
+    def reset(self, task_id: str | None = None) -> MedicalObservation:
         """
         Reset the environment.
 
+        Args:
+            task_id: Optional explicit task identifier to load
+
         Returns:
-            RvedaObservation with a ready message
+            MedicalObservation with the initial patient note
         """
         self._state = State(episode_id=str(uuid4()), step_count=0)
-        self._reset_count += 1
+        if task_id is None:
+            self._current_task = random.choice(self._tasks)
+        else:
+            self._current_task = next(
+                task for task in self._tasks if task["task_id"] == task_id
+            )
+        self._patient_note = self._current_task["patient_note"]
+        self._search_results = []
+        self._detailed_info = ""
 
-        return RvedaObservation(
-            echoed_message="Rveda environment ready!",
-            message_length=0,
+        return MedicalObservation(
+            patient_note=self._patient_note,
+            search_results=self._search_results,
+            detailed_info=self._detailed_info,
+            current_reward=0.0,
             done=False,
             reward=0.0,
         )
 
-    def step(self, action: RvedaAction) -> RvedaObservation:  # type: ignore[override]
+    def step(self, action: MedicalAction) -> MedicalObservation:  # type: ignore[override]
         """
-        Execute a step in the environment by echoing the message.
+        Execute a workflow step.
 
         Args:
-            action: RvedaAction containing the message to echo
+            action: MedicalAction describing the requested workflow operation
 
         Returns:
-            RvedaObservation with the echoed message and its length
+            MedicalObservation with search results, details, or submission status
         """
         self._state.step_count += 1
 
-        message = action.message
-        length = len(message)
+        reward = 0.0
+        done = False
 
-        # Simple reward: longer messages get higher rewards
-        reward = length * 0.1
+        if action.action_type == MedicalActionType.SEARCH:
+            self._search_results = [SearchResult(**result) for result in search_codes(action.query)]
+            self._detailed_info = ""
+        elif action.action_type == MedicalActionType.DETAILS:
+            details = get_code_details(action.query)
+            if details:
+                self._detailed_info = (
+                    f"{details['long_desc']}\nExcludes: {details['excludes']}"
+                )
+            else:
+                self._detailed_info = ""
+        elif action.action_type == MedicalActionType.SUBMIT:
+            target_code = self._current_task["target_code"] if self._current_task else ""
+            if action.query == target_code:
+                reward = 1.0
+            elif action.query[:3] == target_code[:3]:
+                reward = 0.5
+            self._detailed_info = f"Submitted coding decision for query: {action.query}"
+            done = True
 
-        return RvedaObservation(
-            echoed_message=message,
-            message_length=length,
-            done=False,
+        if self._state.step_count >= 10:
+            done = True
+
+        return MedicalObservation(
+            patient_note=self._patient_note,
+            search_results=self._search_results,
+            detailed_info=self._detailed_info,
+            current_reward=reward,
+            done=done,
             reward=reward,
-            metadata={"original_message": message, "step": self._state.step_count},
+            metadata={
+                "query": action.query,
+                "step": self._state.step_count,
+                "task_id": self._current_task["task_id"] if self._current_task else None,
+            },
         )
 
     @property

@@ -36,18 +36,18 @@ except Exception as e:  # pragma: no cover
     ) from e
 
 try:
-    from models import RvedaAction, RvedaObservation
+    from models import MedicalAction, MedicalObservation
     from .rveda_environment import RvedaEnvironment
 except ModuleNotFoundError:
-    from models import RvedaAction, RvedaObservation
+    from models import MedicalAction, MedicalObservation
     from server.rveda_environment import RvedaEnvironment
 
 
 # Create the app with web interface and README integration
 app = create_app(
     RvedaEnvironment,
-    RvedaAction,
-    RvedaObservation,
+    MedicalAction,
+    MedicalObservation,
     env_name="rveda",
     max_concurrent_envs=1,  # increase this number to allow more concurrent WebSocket sessions
 )
@@ -81,4 +81,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
-    main(port=args.port)
+    if args.port == 8000:
+        main()
+    else:
+        main(port=args.port)

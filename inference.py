@@ -9,11 +9,11 @@ MANDATORY
     LOCAL_IMAGE_NAME The name of the local image to use for the environment if you are using from_docker_image()
                      method
 
-- Defaults are set only for API_BASE_URL and MODEL_NAME 
+- Defaults are set only for API_BASE_URL and MODEL_NAME
     (and should reflect your active inference setup):
     API_BASE_URL = os.getenv("API_BASE_URL", "<your-active-endpoint>")
     MODEL_NAME = os.getenv("MODEL_NAME", "<your-active-model>")
-    
+
 - The inference script must be named `inference.py` and placed in the root directory of the project
 - Participants must use OpenAI Client for all LLM calls using above variables
 
@@ -43,6 +43,7 @@ STDOUT FORMAT
 """
 
 import asyncio
+import json
 import os
 import textwrap
 from typing import List, Optional
@@ -53,32 +54,35 @@ load_dotenv()
 
 from openai import OpenAI
 
-from models import RvedaAction, RvedaObservation
+from models import MedicalAction as RvedaAction
 from client import RvedaEnv
 
-IMAGE_NAME = os.getenv("IMAGE_NAME") # If you are using docker image 
+IMAGE_NAME = os.getenv("IMAGE_NAME") # If you are using docker image
 API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 MODEL_NAME = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
-TASK_NAME = os.getenv("RVEDA_TASK", "echo")
+TASK_NAME = os.getenv("RVEDA_TASK", "medical_coding")
 BENCHMARK = os.getenv("RVEDA_BENCHMARK", "rveda")
 MAX_STEPS = 8
 TEMPERATURE = 0.7
 MAX_TOKENS = 150
 SUCCESS_SCORE_THRESHOLD = 0.1  # normalized score in [0, 1]
-
-# Max possible reward: each token contributes 0.1, across all steps
-_MAX_REWARD_PER_STEP = MAX_TOKENS * 0.1
-MAX_TOTAL_REWARD = MAX_STEPS * _MAX_REWARD_PER_STEP
+MAX_TOTAL_REWARD = 1.0
 
 SYSTEM_PROMPT = textwrap.dedent(
     """
-    You are interacting with a simple echo environment.
-    Each turn you must send a message. The environment will echo it back.
-    Reward is proportional to message length: reward = len(message) * 0.1
-    Your goal is to maximize total reward by sending meaningful, substantive messages.
-    Reply with exactly one message string — no quotes, no prefixes, just the message text.
+    You are an expert Medical Coder agent.
+    Your task is to review a patient note, search the ICD-10 taxonomy, and SUBMIT the most accurate code.
+    
+    You must reply ONLY with a valid JSON object matching this schema:
+    {"action_type": "SEARCH", "query": "keyword"} - Use short, single-word keywords (e.g., "hypertension").
+    {"action_type": "DETAILS", "query": "code"} - Look up rules for a specific code (e.g., "I10").
+    {"action_type": "SUBMIT", "query": "code"} - Submit the final ICD-10 code (e.g., "I10").
+    
+    CRITICAL RULES:
+    1. If your SEARCH returns empty results, try a DIFFERENT, shorter keyword. Do NOT repeat the same search.
+    2. Once you see the correct code in the Search Results, you MUST use the SUBMIT action.
     """
 ).strip()
 
@@ -101,22 +105,30 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
 
 
-def build_user_prompt(step: int, last_echoed: str, last_reward: float, history: List[str]) -> str:
+def build_user_prompt(step: int, history: List[str], obs) -> str:
     history_block = "\n".join(history[-4:]) if history else "None"
+    
+    patient_note = obs.patient_note if obs else "N/A"
+    search_results = obs.search_results if obs else []
+    detailed_info = obs.detailed_info if obs else ""
+    
     return textwrap.dedent(
         f"""
         Step: {step}
-        Last echoed message: {last_echoed!r}
-        Last reward: {last_reward:.2f}
-        Previous steps:
+        Patient Note: {patient_note}
+        Search Results: {search_results}
+        Detailed Info: {detailed_info}
+        
+        Previous steps history:
         {history_block}
-        Send your next message.
+        
+        Analyze the patient note and your search results. Output your next action in strict JSON format.
         """
     ).strip()
 
 
-def get_model_message(client: OpenAI, step: int, last_echoed: str, last_reward: float, history: List[str]) -> str:
-    user_prompt = build_user_prompt(step, last_echoed, last_reward, history)
+def get_model_message(client: OpenAI, step: int, history: List[str], obs) -> str:
+    user_prompt = build_user_prompt(step, history, obs)
     try:
         completion = client.chat.completions.create(
             model=MODEL_NAME,
@@ -129,10 +141,12 @@ def get_model_message(client: OpenAI, step: int, last_echoed: str, last_reward: 
             stream=False,
         )
         text = (completion.choices[0].message.content or "").strip()
-        return text if text else "hello"
+        # Strip markdown formatting just in case the LLM tries to be helpful
+        text = text.replace("```json", "").replace("```", "").strip()
+        return text if text else '{"action_type": "SEARCH", "query": "hypertension"}'
     except Exception as exc:
         print(f"[DEBUG] Model request failed: {exc}", flush=True)
-        return "hello"
+        return '{"action_type": "SEARCH", "query": "hypertension"}'
 
 
 async def main() -> None:
@@ -150,16 +164,25 @@ async def main() -> None:
 
     try:
         result = await env.reset() # OpenENV.reset()
-        last_echoed = result.observation.echoed_message
-        last_reward = 0.0
+        obs = result.observation   # Initialize obs BEFORE the loop!
+        last_reward = 0.0          # Initialize last_reward BEFORE the loop!
 
         for step in range(1, MAX_STEPS + 1):
             if result.done:
                 break
 
-            message = get_model_message(client, step, last_echoed, last_reward, history)
+            # Pass only the necessary arguments matching our new function signature
+            message = get_model_message(client, step, history, obs)
 
-            result = await env.step(RvedaAction(message=message))
+            try:
+                parsed = json.loads(message)
+            except json.JSONDecodeError:
+                # Fallback to prevent crash if LLM hallucinates
+                parsed = {"action_type": "SEARCH", "query": "hypertension"}
+
+            result = await env.step(
+                RvedaAction(action_type=parsed["action_type"], query=parsed["query"])
+            )
             obs = result.observation
 
             reward = result.reward or 0.0
@@ -168,12 +191,19 @@ async def main() -> None:
 
             rewards.append(reward)
             steps_taken = step
-            last_echoed = obs.echoed_message
             last_reward = reward
 
-            log_step(step=step, action=message, reward=reward, done=done, error=error)
+            log_step(
+                step=step,
+                action=f"{parsed['action_type']}('{parsed['query']}')",
+                reward=reward,
+                done=done,
+                error=error,
+            )
 
-            history.append(f"Step {step}: {message!r} -> reward {reward:+.2f}")
+            history.append(
+                f"Step {step}: {parsed['action_type']}({parsed['query']!r}) -> reward {reward:+.2f}"
+            )
 
             if done:
                 break

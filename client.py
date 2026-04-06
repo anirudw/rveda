@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-"""Rveda Environment Client."""
+"""Rveda environment client."""
 
 from typing import Dict
 
@@ -12,14 +12,14 @@ from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
 from openenv.core.env_server.types import State
 
-from models import RvedaAction, RvedaObservation
+from models import MedicalAction, MedicalObservation
 
 
 class RvedaEnv(
-    EnvClient[RvedaAction, RvedaObservation, State]
+    EnvClient[MedicalAction, MedicalObservation, State]
 ):
     """
-    Client for the Rveda Environment.
+    Client for the Rveda environment.
 
     This client maintains a persistent WebSocket connection to the environment server,
     enabling efficient multi-step interactions with lower latency.
@@ -29,49 +29,56 @@ class RvedaEnv(
         >>> # Connect to a running server
         >>> with RvedaEnv(base_url="http://localhost:8000") as client:
         ...     result = client.reset()
-        ...     print(result.observation.echoed_message)
+        ...     print(result.observation.patient_note)
         ...
-        ...     result = client.step(RvedaAction(message="Hello!"))
-        ...     print(result.observation.echoed_message)
+        ...     result = client.step(
+        ...         MedicalAction(action_type="SEARCH", query="pneumonia")
+        ...     )
+        ...     print(result.observation.search_results)
 
     Example with Docker:
         >>> # Automatically start container and connect
         >>> client = RvedaEnv.from_docker_image("rveda-env:latest")
         >>> try:
         ...     result = client.reset()
-        ...     result = client.step(RvedaAction(message="Test"))
+        ...     result = client.step(
+        ...         MedicalAction(action_type="DETAILS", query="J18.9")
+        ...     )
         ... finally:
         ...     client.close()
     """
 
-    def _step_payload(self, action: RvedaAction) -> Dict:
+    def _step_payload(self, action: MedicalAction) -> Dict:
         """
-        Convert RvedaAction to JSON payload for step message.
+        Convert MedicalAction to JSON payload for step message.
 
         Args:
-            action: RvedaAction instance
+            action: MedicalAction instance
 
         Returns:
             Dictionary representation suitable for JSON encoding
         """
         return {
-            "message": action.message,
+            "action_type": action.action_type.value,
+            "query": action.query,
         }
 
-    def _parse_result(self, payload: Dict) -> StepResult[RvedaObservation]:
+    def _parse_result(self, payload: Dict) -> StepResult[MedicalObservation]:
         """
-        Parse server response into StepResult[RvedaObservation].
+        Parse server response into StepResult[MedicalObservation].
 
         Args:
             payload: JSON response data from server
 
         Returns:
-            StepResult with RvedaObservation
+            StepResult with MedicalObservation
         """
         obs_data = payload.get("observation", {})
-        observation = RvedaObservation(
-            echoed_message=obs_data.get("echoed_message", ""),
-            message_length=obs_data.get("message_length", 0),
+        observation = MedicalObservation(
+            patient_note=obs_data.get("patient_note", ""),
+            search_results=obs_data.get("search_results", []),
+            detailed_info=obs_data.get("detailed_info", ""),
+            current_reward=obs_data.get("current_reward", 0.0),
             done=payload.get("done", False),
             reward=payload.get("reward"),
             metadata=obs_data.get("metadata", {}),

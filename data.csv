@@ -1,0 +1,4 @@
+id,difficulty,note,codes
+1,easy,Patient presents with essential hypertension.,"I10"
+2,medium,Diagnosed with Type 2 diabetes without complications and acute pharyngitis.,"E11.9,J02.9"
+3,hard,Chronic obstructive pulmonary disease with acute exacerbation and acute bronchitis.,"J44.1,J20.9"
