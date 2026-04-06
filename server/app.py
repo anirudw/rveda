@@ -78,12 +78,11 @@ def main(host: str = "0.0.0.0", port: int = 7860):
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, default=7860)
-    args = parser.parse_args()
-    if args.port == 8000:
-        main()
-    else:
-        main(port=args.port)
+    import uvicorn
+    import os
+    
+    # Hugging Face sets the PORT env var. If it's missing, we default to 7860.
+    port = int(os.environ.get("PORT", 7860))
+    
+    # We MUST bind to 0.0.0.0 to be reachable externally
+    uvicorn.run(app, host="0.0.0.0", port=port)
