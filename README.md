@@ -1,255 +1,181 @@
 ---
 title: Rveda Environment Server
-emoji: 🎹
+emoji: "🏥"
 colorFrom: green
-colorTo: indigo
+colorTo: blue
 sdk: docker
 pinned: false
 app_port: 8000
 base_path: /web
 tags:
   - openenv
+  - medical-coding
+  - agentic-auditing
 ---
 
-# Rveda Environment
+# Rveda: The Medical Coding Flight Simulator
 
-A simple test environment that echoes back messages. Perfect for testing the env APIs as well as demonstrating environment usage patterns.
+Training Agentic Auditors to Solve the $210B Healthcare Administrative Crisis.
 
-## Quick Start
+## The Problem Statement
 
-The simplest way to use the Rveda environment is through the `RvedaEnv` class:
+Medical coding is one of the highest-friction bottlenecks in healthcare operations. Clinical notes must be translated into precise billing codes, but the process is expensive, slow, and error-prone. Industry estimates regularly point to billing error rates that affect a large majority of claims workflows, with roughly 80% of bills containing some form of error, omission, mismatch, or preventable rework. The financial consequence is enormous: healthcare administrative waste is estimated in the hundreds of billions of dollars annually, with this submission framing the coding and claim-quality problem as part of a $210B yearly burden.
 
-```python
-from rveda import RvedaAction, RvedaEnv
+Human coders remain essential, but throughput is limited. In realistic review settings, a trained professional may only process around 18 charts per day when accuracy, compliance, and auditability are required. That makes the problem a poor fit for pure manual scaling and a dangerous fit for naive automation.
 
-try:
-    # Create environment from Docker image
-    rvedaenv = RvedaEnv.from_docker_image("rveda-env:latest")
+Rveda is designed as a training environment for agents that must reason through coding decisions rather than guessing them.
 
-    # Reset
-    result = rvedaenv.reset()
-    print(f"Reset: {result.observation.echoed_message}")
+## The Core Philosophy
 
-    # Send multiple messages
-    messages = ["Hello, World!", "Testing echo", "Final message"]
+Rveda is built around a simple thesis: medical coding should be treated as an auditing problem, not a one-shot text classification problem.
 
-    for msg in messages:
-        result = rvedaenv.step(RvedaAction(message=msg))
-        print(f"Sent: '{msg}'")
-        print(f"  → Echoed: '{result.observation.echoed_message}'")
-        print(f"  → Length: {result.observation.message_length}")
-        print(f"  → Reward: {result.reward}")
+| Dimension | Static Classification | Agentic Auditing |
+| --- | --- | --- |
+| Representative approach | Single-pass label prediction, similar to systems like FraudLens-style classifiers | Multi-step evidence gathering and verification |
+| Core behavior | Predict a code directly from the note | Search for candidate codes, inspect details, then submit |
+| Failure mode | Confident wrong answer from pattern matching | Slower, but auditable and evidence-backed decisions |
+| Hallucination risk | High when the model skips verification | Lower because the agent is forced through `SEARCH` and `DETAILS` |
+| Training signal | Often sparse and end-state only | Dense and process-aware |
+| Interpretability | Weak | Stronger step-by-step trail |
+| Rveda position | Not the target paradigm | The target paradigm |
 
-finally:
-    # Always clean up
-    rvedaenv.close()
-```
+Rveda forces the agent to behave like an auditor. The environment exposes explicit tool-like actions, making it costly to hallucinate and beneficial to verify. Instead of rewarding eloquent guesses, it rewards grounded interaction with retrieval evidence before final submission.
 
-That's it! The `RvedaEnv.from_docker_image()` method handles:
-- Starting the Docker container
-- Waiting for the server to be ready
-- Connecting to the environment
-- Container cleanup when you call `close()`
+## Environment Design
 
-## Building the Docker Image
+Rveda is an OpenEnv environment for episodic medical coding tasks. Each episode starts from a patient note and ends when the agent submits a code or reaches the step limit.
 
-Before using the environment, you need to build the Docker image:
+### Action Space
 
-```bash
-# From project root
-docker build -t rveda-env:latest -f server/Dockerfile .
-```
+The environment exposes three actions:
 
-## Deploying to Hugging Face Spaces
+- `SEARCH(query)`: Retrieve candidate ICD-10 codes using the local search engine.
+- `DETAILS(code)`: Inspect the long-form description and exclusion notes for an exact code.
+- `SUBMIT(code)`: Commit to a final ICD-10 code and terminate the episode.
 
-You can easily deploy your OpenEnv environment to Hugging Face Spaces using the `openenv push` command:
+This action design intentionally separates retrieval, inspection, and commitment. The environment is not asking the agent to emit a final label immediately; it is asking the agent to act like a verification-first coder.
 
-```bash
-# From the environment directory (where openenv.yaml is located)
-openenv push
+### Observation Space
 
-# Or specify options
-openenv push --namespace my-org --private
-```
+The observation schema is structured around the progressive disclosure of evidence:
 
-The `openenv push` command will:
-1. Validate that the directory is an OpenEnv environment (checks for `openenv.yaml`)
-2. Prepare a custom build for Hugging Face Docker space (enables web interface)
-3. Upload to Hugging Face (ensuring you're logged in)
+- `patient_note`: The raw clinical scenario visible at reset.
+- `search_results`: Candidate code matches surfaced by `SEARCH`.
+- `detailed_info`: Code-specific explanatory context surfaced by `DETAILS`.
+- `current_reward`: The immediate reward attached to the current observation.
 
-### Prerequisites
+Operationally, the interaction flow is:
 
-- Authenticate with Hugging Face: The command will prompt for login if not already authenticated
+`patient_note -> search_results -> detailed_info -> submit`
 
-### Options
+That flow is the core learning curriculum. Agents must learn when to broaden search, when to drill into a code, and when there is enough evidence to submit.
 
-- `--directory`, `-d`: Directory containing the OpenEnv environment (defaults to current directory)
-- `--repo-id`, `-r`: Repository ID in format 'username/repo-name' (defaults to 'username/env-name' from openenv.yaml)
-- `--base-image`, `-b`: Base Docker image to use (overrides Dockerfile FROM)
-- `--private`: Deploy the space as private (default: public)
+## Hierarchical Reward Logic
 
-### Examples
+Rveda uses a dense hierarchical reward rather than a purely binary success signal.
 
-```bash
-# Push to your personal namespace (defaults to username/env-name from openenv.yaml)
-openenv push
+- `1.0`: Exact code match with the episode target.
+- `0.5`: Partial category match when the first three characters align with the target family.
+- `0.0`: Incorrect submission outside the target category.
 
-# Push to a specific repository
-openenv push --repo-id my-org/my-env
+### Partial Progress Signal
 
-# Push with a custom base image
-openenv push --base-image ghcr.io/meta-pytorch/openenv-base:latest
+The partial reward is deliberate. In real coding workflows, identifying the correct disease family but missing final specificity is materially better than selecting an unrelated diagnosis. The reward model reflects that difference.
 
-# Push as a private space
-openenv push --private
+This is superior for RL training compared with a sparse binary signal because it:
 
-# Combine options
-openenv push --repo-id my-org/my-env --base-image custom-base:latest --private
-```
+- gives the policy gradient information before full mastery,
+- distinguishes clinically adjacent errors from random failures,
+- encourages structured exploration over blind guessing,
+- makes it easier to train agents on difficult specificity jumps within a code family.
 
-After deployment, your space will be available at:
-`https://huggingface.co/spaces/<repo-id>`
+In short, the reward system measures progress, not just perfection.
 
-The deployed space includes:
-- **Web Interface** at `/web` - Interactive UI for exploring the environment
-- **API Documentation** at `/docs` - Full OpenAPI/Swagger interface
-- **Health Check** at `/health` - Container health monitoring
-- **WebSocket** at `/ws` - Persistent session endpoint for low-latency interactions
+## Technical Constraints & Future Work
 
-## Environment Details
+This competition version is optimized for portability and tight resource budgets. The current design uses a lightweight SQLite full-text search style backend to stay compatible with an 8GB RAM competition constraint while still supporting local retrieval and deterministic evaluation.
 
-### Action
-**RvedaAction**: Contains a single field
-- `message` (str) - The message to echo back
+That constraint is architectural, not conceptual. The environment has been structured so the retrieval engine is hot-swappable:
 
-### Observation
-**RvedaObservation**: Contains the echo response and metadata
-- `echoed_message` (str) - The message echoed back
-- `message_length` (int) - Length of the message
-- `reward` (float) - Reward based on message length (length × 0.1)
-- `done` (bool) - Always False for echo environment
-- `metadata` (dict) - Additional info like step count
+- Competition build: SQLite-backed local retrieval
+- Production candidate: Vector database such as Pinecone or Milvus
+- Production retrieval model: Clinical embeddings such as BioBERT or related domain-tuned encoders
 
-### Reward
-The reward is calculated as: `message_length × 0.1`
-- "Hi" → reward: 0.2
-- "Hello, World!" → reward: 1.3
-- Empty message → reward: 0.0
+This means the benchmark loop can stay stable while the retrieval substrate upgrades from lightweight lexical search to semantic clinical retrieval.
 
-## Advanced Usage
+Near-term future work includes:
 
-### Connecting to an Existing Server
+- richer ICD-10 coverage beyond the mock dataset,
+- multi-code episodes and sequencing constraints,
+- payer-specific rules and denial-aware evaluation,
+- clinician-query actions when documentation is insufficient,
+- stronger automated tests and benchmark reporting,
+- production retrieval adapters for vector search backends.
 
-If you already have a Rveda environment server running, you can connect directly:
+## Reproduction
 
-```python
-from rveda import RvedaEnv
+### 1. Build the environment image
 
-# Connect to existing server
-rvedaenv = RvedaEnv(base_url="<ENV_HTTP_URL_HERE>")
-
-# Use as normal
-result = rvedaenv.reset()
-result = rvedaenv.step(RvedaAction(message="Hello!"))
-```
-
-Note: When connecting to an existing server, `rvedaenv.close()` will NOT stop the server.
-
-### Using the Context Manager
-
-The client supports context manager usage for automatic connection management:
-
-```python
-from rveda import RvedaAction, RvedaEnv
-
-# Connect with context manager (auto-connects and closes)
-with RvedaEnv(base_url="http://localhost:8000") as env:
-    result = env.reset()
-    print(f"Reset: {result.observation.echoed_message}")
-    # Multiple steps with low latency
-    for msg in ["Hello", "World", "!"]:
-        result = env.step(RvedaAction(message=msg))
-        print(f"Echoed: {result.observation.echoed_message}")
-```
-
-The client uses WebSocket connections for:
-- **Lower latency**: No HTTP connection overhead per request
-- **Persistent session**: Server maintains your environment state
-- **Efficient for episodes**: Better for many sequential steps
-
-### Concurrent WebSocket Sessions
-
-The server supports multiple concurrent WebSocket connections. To enable this,
-modify `server/app.py` to use factory mode:
-
-```python
-# In server/app.py - use factory mode for concurrent sessions
-app = create_app(
-    RvedaEnvironment,  # Pass class, not instance
-    RvedaAction,
-    RvedaObservation,
-    max_concurrent_envs=4,  # Allow 4 concurrent sessions
-)
-```
-
-Then multiple clients can connect simultaneously:
-
-```python
-from rveda import RvedaAction, RvedaEnv
-from concurrent.futures import ThreadPoolExecutor
-
-def run_episode(client_id: int):
-    with RvedaEnv(base_url="http://localhost:8000") as env:
-        result = env.reset()
-        for i in range(10):
-            result = env.step(RvedaAction(message=f"Client {client_id}, step {i}"))
-        return client_id, result.observation.message_length
-
-# Run 4 episodes concurrently
-with ThreadPoolExecutor(max_workers=4) as executor:
-    results = list(executor.map(run_episode, range(4)))
-```
-
-## Development & Testing
-
-### Direct Environment Testing
-
-Test the environment logic directly without starting the HTTP server:
+From the repository root:
 
 ```bash
-# From the server directory
-python3 server/rveda_environment.py
+docker build -t rveda-env:latest -f Dockerfile .
 ```
 
-This verifies that:
-- Environment resets correctly
-- Step executes actions properly
-- State tracking works
-- Rewards are calculated correctly
-
-### Running Locally
-
-Run the server locally for development:
+You can also validate the environment locally before running inference:
 
 ```bash
-uvicorn server.app:app --reload
+openenv validate
 ```
 
-## Project Structure
+### 2. Configure inference credentials
 
+Set the required environment variables before running the agent loop:
+
+```bash
+export API_BASE_URL="https://router.huggingface.co/v1"
+export MODEL_NAME="Qwen/Qwen2.5-72B-Instruct"
+export HF_TOKEN="<your_token>"
+export IMAGE_NAME="rveda-env:latest"
 ```
-rveda/
-├── .dockerignore         # Docker build exclusions
-├── __init__.py            # Module exports
-├── README.md              # This file
-├── openenv.yaml           # OpenEnv manifest
-├── pyproject.toml         # Project metadata and dependencies
-├── uv.lock                # Locked dependencies (generated)
-├── client.py              # RvedaEnv client
-├── models.py              # Action and Observation models
-└── server/
-    ├── __init__.py        # Server module exports
-    ├── rveda_environment.py  # Core environment logic
-    ├── app.py             # FastAPI application (HTTP + WebSocket endpoints)
-    └── Dockerfile         # Container image definition
+
+On PowerShell:
+
+```powershell
+$env:API_BASE_URL = "https://router.huggingface.co/v1"
+$env:MODEL_NAME = "Qwen/Qwen2.5-72B-Instruct"
+$env:HF_TOKEN = "<your_token>"
+$env:IMAGE_NAME = "rveda-env:latest"
 ```
+
+### 3. Run inference
+
+Execute the submission loop from the project root:
+
+```bash
+python inference.py
+```
+
+The script will:
+
+- create the OpenAI-compatible client,
+- launch the environment from the Docker image,
+- reset into a coding task,
+- prompt the model to emit raw JSON actions,
+- execute `SEARCH`, `DETAILS`, and `SUBMIT` steps,
+- print standardized `[START]`, `[STEP]`, and `[END]` lines for evaluation.
+
+## Repository Map
+
+- [`models.py`](/X:/Projects/rveda/models.py): Action and observation schema
+- [`client.py`](/X:/Projects/rveda/client.py): OpenEnv client wrapper
+- [`server/app.py`](/X:/Projects/rveda/server/app.py): HTTP server entrypoint
+- [`server/rveda_environment.py`](/X:/Projects/rveda/server/rveda_environment.py): Core environment logic
+- [`server/engine.py`](/X:/Projects/rveda/server/engine.py): SQLite-backed retrieval engine
+- [`tasks.json`](/X:/Projects/rveda/tasks.json): Episode/task definitions
+- [`icd10_mock.json`](/X:/Projects/rveda/icd10_mock.json): Mock ICD-10 code corpus
+- [`inference.py`](/X:/Projects/rveda/inference.py): Competition inference loop
+
+## Current Scope
+
+Rveda is already a usable OpenEnv submission: it validates, runs locally, exposes a structured action interface, and supports agent training on evidence-backed coding behavior. It is not yet a full production medical coding platform, and it does not claim to be. Its current role is more precise: a flight simulator for agentic medical auditing under realistic operational constraints.

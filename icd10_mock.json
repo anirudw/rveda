@@ -3,30 +3,60 @@
     "code": "E11.9",
     "short_desc": "Type 2 diabetes mellitus without complications",
     "long_desc": "Type 2 diabetes mellitus without any specified complications.",
-    "excludes": "Excludes1: Type 1 diabetes (E10.-)"
+    "excludes": "Excludes1: Type 1 diabetes (E10.-), gestational diabetes (O24.4-)"
   },
   {
-    "code": "E11.40",
-    "short_desc": "Type 2 diabetes with diabetic neuropathy",
-    "long_desc": "Type 2 diabetes mellitus with unspecified diabetic neuropathy.",
-    "excludes": "Excludes1: Type 1 diabetes with neuropathy (E10.40)"
+    "code": "E11.65",
+    "short_desc": "Type 2 diabetes mellitus with hyperglycemia",
+    "long_desc": "Type 2 diabetes mellitus with poorly controlled blood sugar / hyperglycemia.",
+    "excludes": "Excludes1: Type 1 diabetes with hyperglycemia (E10.65)"
   },
   {
     "code": "E11.22",
     "short_desc": "Type 2 diabetes with diabetic chronic kidney disease",
-    "long_desc": "Type 2 diabetes mellitus with diabetic chronic kidney disease. Use additional code to identify stage of chronic kidney disease (N18.1-N18.6).",
+    "long_desc": "Type 2 diabetes mellitus with diabetic chronic kidney disease. Use additional code to identify stage of chronic kidney disease.",
     "excludes": "Excludes1: Type 1 diabetes with CKD (E10.22)"
   },
   {
     "code": "N18.3",
     "short_desc": "Chronic kidney disease, stage 3 (moderate)",
-    "long_desc": "Chronic kidney disease, stage 3 (moderate).",
+    "long_desc": "Chronic kidney disease, stage 3.",
     "excludes": "Excludes1: acute kidney failure (N17.-)"
   },
   {
-    "code": "E10.9",
-    "short_desc": "Type 1 diabetes mellitus without complications",
-    "long_desc": "Type 1 diabetes mellitus without complications.",
-    "excludes": "Excludes1: Type 2 diabetes (E11.-)"
+    "code": "E03.9",
+    "short_desc": "Hypothyroidism, unspecified",
+    "long_desc": "Unspecified hypothyroidism.",
+    "excludes": "Excludes1: autoimmune thyroiditis / Hashimoto's (E06.3)"
+  },
+  {
+    "code": "E06.3",
+    "short_desc": "Autoimmune thyroiditis",
+    "long_desc": "Autoimmune thyroiditis, including Hashimoto's disease.",
+    "excludes": "Excludes1: unspecified hypothyroidism (E03.9)"
+  },
+  {
+    "code": "E66.01",
+    "short_desc": "Morbid (severe) obesity due to excess calories",
+    "long_desc": "Morbid obesity due to excess calories. Body mass index (BMI) over 40.",
+    "excludes": "Excludes1: Overweight (E66.3), Obesity due to endocrine condition (E66.8)"
+  },
+  {
+    "code": "E66.3",
+    "short_desc": "Overweight",
+    "long_desc": "Overweight, BMI 25.0 to 29.9.",
+    "excludes": "Excludes1: Morbid obesity (E66.01)"
+  },
+  {
+    "code": "R07.9",
+    "short_desc": "Chest pain, unspecified",
+    "long_desc": "Unspecified chest pain.",
+    "excludes": "Excludes1: myocardial infarction / heart attack (I21.-)"
+  },
+  {
+    "code": "I21.9",
+    "short_desc": "Acute myocardial infarction, unspecified",
+    "long_desc": "Acute myocardial infarction, unspecified. Heart attack.",
+    "excludes": "Excludes1: old myocardial infarction (I25.2)"
   }
 ]
