@@ -68,6 +68,10 @@ COPY --from=builder /app/env /app/env
 # Set PATH to use the virtual environment
 ENV PATH="/app/.venv/bin:$PATH"
 
+
+# Copy the database into the same relative path used by server/engine.py
+COPY data/icd10.db /app/env/data/icd10.db
+
 # Set PYTHONPATH so imports work correctly
 ENV PYTHONPATH="/app/env:$PYTHONPATH"
 
