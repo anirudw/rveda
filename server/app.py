@@ -55,7 +55,7 @@ app = create_app(
 async def health():
     return {"status": "ok"}
 
-def main(host: str = "0.0.0.0", port: int = 7860):
+def main(host: str = "0.0.0.0", port: int = 8000):
     """
     Entry point for direct execution via uv run or python -m.
 
@@ -81,8 +81,8 @@ if __name__ == "__main__":
     import uvicorn
     import os
     
-    # Hugging Face sets the PORT env var. If it's missing, we default to 7860.
-    port = int(os.environ.get("PORT", 7860))
+    # Hugging Face sets the PORT env var. If it's missing, we default to 8000.
+    port = int(os.environ.get("PORT", 8000))
     
     # We MUST bind to 0.0.0.0 to be reachable externally
     uvicorn.run(app, host="0.0.0.0", port=port)

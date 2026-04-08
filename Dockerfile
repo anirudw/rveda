@@ -80,8 +80,8 @@ ENV ENABLE_WEB_INTERFACE=true
 # Run the FastAPI server
 # The module path is constructed to work with the /app/env structure
 # Ensure we are using the internal HF port variable
-ENV PORT=7860
-EXPOSE 7860
+ENV PORT=8000
+EXPOSE 8000
 
 # Use the 'exec' form of CMD for better signal handling
-CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000"]
