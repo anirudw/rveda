@@ -20,10 +20,10 @@ from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
 
 try:
-    from ..models import MedicalAction, MedicalActionType, MedicalObservation, SearchResult
+    from ..models import GradingTrace, MedicalAction, MedicalActionType, MedicalObservation, SearchResult
     from .engine import get_code_details, initialize_db, search_codes
 except ImportError:
-    from models import MedicalAction, MedicalActionType, MedicalObservation, SearchResult
+    from models import GradingTrace, MedicalAction, MedicalActionType, MedicalObservation, SearchResult
     from server.engine import get_code_details, initialize_db, search_codes
 
 
@@ -37,8 +37,60 @@ class RvedaEnvironment(Environment):
     # When True, multiple WebSocket clients can connect simultaneously, each
     # getting their own environment instance (when using factory mode in app.py).
     SUPPORTS_CONCURRENT_SESSIONS: bool = True
-    _MIN_OPEN_SCORE = 0.05
-    _MAX_OPEN_SCORE = 0.95
+    _MIN_OPEN_SCORE = 0.0
+    _MAX_OPEN_SCORE = 0.99
+    _BASE_REWARD = {
+        "exact": 0.72,
+        "family": 0.46,
+        "wrong": 0.12,
+    }
+    _GRADER_POLICIES = {
+        "easy": {
+            "search_novelty_bonus": 0.01,
+            "search_result_bonus": 0.01,
+            "search_target_bonus": 0.03,
+            "search_family_bonus": 0.02,
+            "detail_bonus": 0.01,
+            "detail_search_hit_bonus": 0.02,
+            "detail_family_bonus": 0.01,
+            "detail_conflict_penalty": 0.02,
+            "submit_search_history_bonus": 0.01,
+            "submit_search_hit_bonus": 0.02,
+            "submit_code_history_bonus": 0.01,
+            "submit_depth_bonus": 0.00,
+            "submit_conflict_penalty": 0.03,
+        },
+        "medium": {
+            "search_novelty_bonus": 0.015,
+            "search_result_bonus": 0.015,
+            "search_target_bonus": 0.04,
+            "search_family_bonus": 0.025,
+            "detail_bonus": 0.015,
+            "detail_search_hit_bonus": 0.03,
+            "detail_family_bonus": 0.015,
+            "detail_conflict_penalty": 0.04,
+            "submit_search_history_bonus": 0.02,
+            "submit_search_hit_bonus": 0.03,
+            "submit_code_history_bonus": 0.02,
+            "submit_depth_bonus": 0.01,
+            "submit_conflict_penalty": 0.12,
+        },
+        "hard": {
+            "search_novelty_bonus": 0.02,
+            "search_result_bonus": 0.02,
+            "search_target_bonus": 0.05,
+            "search_family_bonus": 0.03,
+            "detail_bonus": 0.02,
+            "detail_search_hit_bonus": 0.04,
+            "detail_family_bonus": 0.02,
+            "detail_conflict_penalty": 0.05,
+            "submit_search_history_bonus": 0.03,
+            "submit_search_hit_bonus": 0.04,
+            "submit_code_history_bonus": 0.03,
+            "submit_depth_bonus": 0.02,
+            "submit_conflict_penalty": 0.15,
+        },
+    }
 
     def __init__(self):
         """Initialize the Rveda environment."""
@@ -55,79 +107,160 @@ class RvedaEnvironment(Environment):
         self._excludes1_conflict_seen = False
 
     def _grade_bounds(self, score: float) -> float:
-        """Clamp score into an open interval so it is never exactly 0 or 1."""
+        """Clamp score into the supported reward range."""
         return min(max(score, self._MIN_OPEN_SCORE), self._MAX_OPEN_SCORE)
+
+    def _task_difficulty(self) -> str:
+        if not self._current_task:
+            return "medium"
+        return self._current_task.get("difficulty", "medium").lower()
+
+    def _grader_name(self) -> str:
+        return f"{self._task_difficulty()}_grader"
+
+    def _policy(self) -> dict[str, float]:
+        return self._GRADER_POLICIES.get(self._task_difficulty(), self._GRADER_POLICIES["medium"])
+
+    def _target_code(self) -> str:
+        return self._current_task.get("target_code", "") if self._current_task else ""
 
     def _same_family(self, submitted_code: str, target_code: str) -> bool:
         return bool(submitted_code and target_code and submitted_code[:3] == target_code[:3])
 
-    def _grade_easy(self, submitted_code: str, target_code: str) -> float:
-        if submitted_code == target_code:
-            return 0.90
-        if self._same_family(submitted_code, target_code):
-            return 0.60
-        if submitted_code in self._last_search_codes:
-            return 0.35
-        return 0.10
-
-    def _grade_medium(self, submitted_code: str, target_code: str) -> float:
-        if submitted_code == target_code:
-            base = 0.72
-        elif self._same_family(submitted_code, target_code):
-            base = 0.42
-        else:
-            base = 0.12
-
-        evidence_bonus = 0.0
-        if self.search_history:
-            evidence_bonus += 0.08
-        if submitted_code in self._last_search_codes:
-            evidence_bonus += 0.06
-        if submitted_code in self.code_history:
-            evidence_bonus += 0.07
-        if self._excludes1_conflict_seen:
-            evidence_bonus -= 0.10
-
-        return self._grade_bounds(base + evidence_bonus)
-
-    def _grade_hard(self, submitted_code: str, target_code: str) -> float:
-        if submitted_code == target_code:
-            base = 0.62
-        elif self._same_family(submitted_code, target_code):
-            base = 0.30
-        else:
-            base = 0.08
-
-        process_bonus = 0.0
-        if self.search_history:
-            process_bonus += 0.08
-        if submitted_code in self._last_search_codes:
-            process_bonus += 0.08
-        if submitted_code in self.code_history:
-            process_bonus += 0.10
-        if len(self.code_history) >= 2:
-            process_bonus += 0.05
-        if self._excludes1_conflict_seen:
-            process_bonus -= 0.18
-
-        return self._grade_bounds(base + process_bonus)
-
-    def _grade_submission(self, submitted_code: str, target_code: str) -> tuple[float, str]:
-        difficulty = (
-            (self._current_task.get("difficulty", "medium").lower() if self._current_task else "medium")
+    def _grade_search_step(
+        self,
+        query: str,
+        result_codes: list[str],
+        target_code: str,
+    ) -> tuple[float, dict[str, float]]:
+        policy = self._policy()
+        result_count = len(result_codes)
+        exact_hit = 1.0 if target_code in result_codes else 0.0
+        family_hit = 1.0 if any(self._same_family(code, target_code) for code in result_codes) else 0.0
+        novelty_bonus = policy["search_novelty_bonus"] if result_count > 0 and query not in self.search_history[:-1] else 0.0
+        score = self._grade_bounds(
+            (
+                0.0
+                + novelty_bonus
+                + min(result_count, 5) * policy["search_result_bonus"]
+                + exact_hit * policy["search_target_bonus"]
+                + family_hit * policy["search_family_bonus"]
+            )
         )
+        return score, {
+            "base": 0.0,
+            "query_novelty_bonus": novelty_bonus,
+            "result_count_bonus": min(result_count, 5) * policy["search_result_bonus"],
+            "target_hit_bonus": exact_hit * policy["search_target_bonus"],
+            "family_hit_bonus": family_hit * policy["search_family_bonus"],
+            "result_count": float(result_count),
+            "final": score,
+        }
+
+    def _grade_details_step(
+        self,
+        query: str,
+        details: dict[str, str] | None,
+        target_code: str,
+        conflict_seen: bool,
+    ) -> tuple[float, dict[str, float]]:
+        policy = self._policy()
+        detail_found = 1.0 if details else 0.0
+        search_hit = 1.0 if query in self._last_search_codes else 0.0
+        family_hit = 1.0 if self._same_family(query, target_code) else 0.0
+        conflict_penalty = -policy["detail_conflict_penalty"] if conflict_seen else 0.0
+        score = self._grade_bounds(
+            (
+                0.0
+                + detail_found * policy["detail_bonus"]
+                + search_hit * policy["detail_search_hit_bonus"]
+                + family_hit * policy["detail_family_bonus"]
+                + conflict_penalty
+            )
+        )
+        return score, {
+            "base": 0.0,
+            "detail_found_bonus": detail_found * policy["detail_bonus"],
+            "search_alignment_bonus": search_hit * policy["detail_search_hit_bonus"],
+            "family_bonus": family_hit * policy["detail_family_bonus"],
+            "conflict_penalty": conflict_penalty,
+            "final": score,
+        }
+
+    def _grade_submission(
+        self,
+        submitted_code: str,
+        target_code: str,
+    ) -> tuple[float, str, dict[str, float]]:
+        policy = self._policy()
+        grader_name = self._grader_name()
 
         if not target_code:
-            return self._grade_bounds(0.10), difficulty
+            score = self._grade_bounds(self._BASE_REWARD["wrong"])
+            return score, grader_name, {"base": score, "final": score}
 
-        if difficulty == "easy":
-            score = self._grade_easy(submitted_code, target_code)
-        elif difficulty == "hard":
-            score = self._grade_hard(submitted_code, target_code)
+        if submitted_code == target_code:
+            base = self._BASE_REWARD["exact"]
+            exact_match = 1.0
+            family_match = 0.0
+        elif self._same_family(submitted_code, target_code):
+            base = self._BASE_REWARD["family"]
+            exact_match = 0.0
+            family_match = 1.0
         else:
-            score = self._grade_medium(submitted_code, target_code)
+            base = self._BASE_REWARD["wrong"]
+            exact_match = 0.0
+            family_match = 0.0
 
-        return self._grade_bounds(score), difficulty
+        search_history_bonus = policy["submit_search_history_bonus"] if self.search_history else 0.0
+        search_hit_bonus = policy["submit_search_hit_bonus"] if submitted_code in self._last_search_codes else 0.0
+        code_history_bonus = policy["submit_code_history_bonus"] if submitted_code in self.code_history else 0.0
+        depth_bonus = policy["submit_depth_bonus"] if len(self.code_history) >= 2 else 0.0
+        conflict_penalty = -policy["submit_conflict_penalty"] if self._excludes1_conflict_seen else 0.0
+
+        score = self._grade_bounds(
+            base
+            + search_history_bonus
+            + search_hit_bonus
+            + code_history_bonus
+            + depth_bonus
+            + conflict_penalty
+        )
+        return score, grader_name, {
+            "base": base,
+            "exact_match": exact_match,
+            "family_match": family_match,
+            "search_hit": 1.0 if submitted_code in self._last_search_codes else 0.0,
+            "search_hit_bonus": search_hit_bonus,
+            "search_history_bonus": search_history_bonus,
+            "code_history_bonus": code_history_bonus,
+            "depth_bonus": depth_bonus,
+            "conflict_penalty": conflict_penalty,
+            "final": score,
+        }
+
+    def _build_grading_trace(
+        self,
+        action_type: str,
+        grader_used: str,
+        reward: float,
+        reward_components: dict[str, float],
+    ) -> GradingTrace:
+        task_id = self._current_task["task_id"] if self._current_task else ""
+        difficulty = self._current_task["difficulty"] if self._current_task else ""
+        return GradingTrace(
+            action_type=action_type,
+            grader=grader_used,
+            difficulty=difficulty,
+            step=self._state.step_count,
+            task_id=task_id,
+            reward=reward,
+            reward_components=reward_components,
+            search_history=list(self.search_history),
+            code_history=list(self.code_history),
+            last_search_codes=sorted(self._last_search_codes),
+            excludes1_conflict_seen=self._excludes1_conflict_seen,
+        )
 
     def _load_tasks(self) -> list[dict[str, str]]:
         tasks_path = Path(__file__).resolve().parent.parent / "tasks.json"
@@ -184,13 +317,24 @@ class RvedaEnvironment(Environment):
         reward = 0.0
         done = False
         excludes1_penalty = False
-        grader_used = None
+        grader_used = self._grader_name()
+        reward_components: dict[str, float] = {"final": 0.0}
 
         if action.action_type == MedicalActionType.SEARCH:
             self.search_history.append(action.query)
             self._search_results = [SearchResult(**result) for result in search_codes(action.query)]
             self._last_search_codes = {result.code for result in self._search_results}
-            self._detailed_info = ""
+            target_code = self._target_code()
+            search_reward, reward_components = self._grade_search_step(
+                query=action.query,
+                result_codes=sorted(self._last_search_codes),
+                target_code=target_code,
+            )
+            reward = search_reward
+            self._detailed_info = (
+                f"Search returned {len(self._search_results)} candidate(s)"
+                + (f" for target family {target_code[:3]}" if target_code else "")
+            )
         elif action.action_type == MedicalActionType.DETAILS:
             details = get_code_details(action.query)
             if details:
@@ -198,6 +342,13 @@ class RvedaEnvironment(Environment):
                 if any(previous_code in excludes for previous_code in self.code_history):
                     excludes1_penalty = True
                     self._excludes1_conflict_seen = True
+                target_code = self._target_code()
+                reward, reward_components = self._grade_details_step(
+                    query=action.query,
+                    details=details,
+                    target_code=target_code,
+                    conflict_seen=excludes1_penalty,
+                )
                 self.code_history.append(action.query)
                 self._detailed_info = (
                     f"{details['long_desc']}\nExcludes: {excludes}"
@@ -205,13 +356,20 @@ class RvedaEnvironment(Environment):
             else:
                 self._detailed_info = ""
         elif action.action_type == MedicalActionType.SUBMIT:
-            target_code = self._current_task["target_code"] if self._current_task else ""
-            reward, grader_used = self._grade_submission(action.query, target_code)
+            target_code = self._target_code()
+            reward, grader_used, reward_components = self._grade_submission(action.query, target_code)
             self._detailed_info = f"Submitted coding decision for query: {action.query}"
             done = True
 
         if self._state.step_count >= 10:
             done = True
+
+        grading = self._build_grading_trace(
+            action_type=action.action_type.value,
+            grader_used=grader_used,
+            reward=reward,
+            reward_components=reward_components,
+        )
 
         return MedicalObservation(
             patient_note=self._patient_note,
@@ -220,17 +378,13 @@ class RvedaEnvironment(Environment):
             current_reward=reward,
             done=done,
             reward=reward,
+            grading=grading,
             metadata={
                 "query": action.query,
                 "step": self._state.step_count,
                 "task_id": self._current_task["task_id"] if self._current_task else None,
                 "difficulty": self._current_task["difficulty"] if self._current_task else None,
-                "code_history": list(self.code_history),
-                "search_history": list(self.search_history),
-                "last_search_codes": sorted(self._last_search_codes),
                 "excludes1_penalty": excludes1_penalty,
-                "excludes1_conflict_seen": self._excludes1_conflict_seen,
-                "grader_used": grader_used,
             },
         )
 

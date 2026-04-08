@@ -79,6 +79,7 @@ class RvedaEnv(
             search_results=obs_data.get("search_results", []),
             detailed_info=obs_data.get("detailed_info", ""),
             current_reward=obs_data.get("current_reward", 0.0),
+            grading=obs_data.get("grading", {}),
             done=payload.get("done", False),
             reward=payload.get("reward"),
             metadata=obs_data.get("metadata", {}),

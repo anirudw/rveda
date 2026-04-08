@@ -76,8 +76,9 @@ class StepInfoMiddleware(BaseHTTPMiddleware):
         except json.JSONDecodeError:
             return JSONResponse(content={"detail": "Invalid JSON response from /step"}, status_code=500)
 
-        if isinstance(payload, dict) and "info" not in payload:
-            payload["info"] = {}
+        if isinstance(payload, dict):
+            grading = payload.get("observation", {}).get("grading", {})
+            payload["info"] = grading if isinstance(grading, dict) else {}
 
         return JSONResponse(content=payload, status_code=response.status_code, headers=dict(response.headers))
 

@@ -41,6 +41,37 @@ class SearchResult(BaseModel):
     short_desc: str = Field(..., description="Short description for the code")
 
 
+class GradingTrace(BaseModel):
+    """Explicit grading trace for the current episode step."""
+
+    action_type: str = Field(default="", description="Action type that produced this trace")
+    grader: str = Field(default="", description="Named grader used for the current task")
+    difficulty: str = Field(default="", description="Task difficulty label")
+    step: int = Field(default=0, ge=0, description="Environment step count at grading time")
+    task_id: str = Field(default="", description="Task identifier")
+    reward: float = Field(default=0.0, description="Reward assigned by the grader")
+    reward_components: dict[str, float] = Field(
+        default_factory=dict,
+        description="Named reward components used to compute the final reward",
+    )
+    search_history: list[str] = Field(
+        default_factory=list,
+        description="Search queries issued during the episode",
+    )
+    code_history: list[str] = Field(
+        default_factory=list,
+        description="DETAILS queries issued during the episode",
+    )
+    last_search_codes: list[str] = Field(
+        default_factory=list,
+        description="Codes returned by the most recent SEARCH action",
+    )
+    excludes1_conflict_seen: bool = Field(
+        default=False,
+        description="Whether an Excludes1 conflict was detected during the episode",
+    )
+
+
 class MedicalObservation(Observation):
     """Observation payload returned by the environment."""
 
@@ -54,4 +85,8 @@ class MedicalObservation(Observation):
     )
     current_reward: float = Field(
         default=0.0, description="Current reward accumulated in the episode"
+    )
+    grading: GradingTrace = Field(
+        default_factory=GradingTrace,
+        description="Explicit grading trace and episode trajectory signals",
     )
