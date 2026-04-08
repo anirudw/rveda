@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = ROOT_DIR / "icd10.db"
+DB_PATH = ROOT_DIR / "data" / "icd10.db"
 DATA_PATH = ROOT_DIR / "icd10_mock.json"
 
 
@@ -17,6 +17,7 @@ def initialize_db(
     data_path: Path = DATA_PATH,
 ) -> None:
     """Create the local SQLite database and load mock ICD-10 records."""
+    db_path.parent.mkdir(parents=True, exist_ok=True)
     with data_path.open("r", encoding="utf-8") as fh:
         records = json.load(fh)
 

@@ -215,3 +215,4 @@ pycache/
 *.pyc
 .agents/
 .codex/
+tester-bot.py
