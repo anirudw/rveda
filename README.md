@@ -23,7 +23,9 @@ Although the included baseline is a single-agent loop, the environment is struct
 
 ## Why Rveda
 
-Medical coding is not just a classification problem. In practice, coders search, verify, inspect exclusions, and only then finalize a billing code. Rveda turns that workflow into a benchmark.
+Medical coding sits inside a much larger operational and financial surface area. A UC San Diego and *Health Affairs* analysis projected that aggressive diagnostic coding intensity could drive [more than $200 billion in Medicare overpayments over a decade](https://www.sciencedaily.com/releases/2017/02/170207092727.htm). A recent Zinnov industry report similarly projects U.S. healthcare revenue cycle management spend to reach [USD 200-210 billion by 2029](https://zinnov.com/centers-of-excellence/the-200-billion-question-why-the-future-of-healthcare-rcm-may-belong-to-india) as billing workflows become more fragmented and administratively heavy. Those figures do not imply that a lightweight benchmark solves the full problem, but they do show why coding behavior is not a harmless toy task: inaccurate, over-aggressive, or weakly verified coding decisions can scale into real financial and operational damage.
+
+A benchmark that rewards only the final label risks training exactly the wrong behavior: hallucinating or overly aggressive agents that maximize apparent specificity without grounding. Rveda is designed to test the opposite behavior: grounded, stepwise coding decisions in which retrieval and verification are part of the task, not optional post-processing.
 
 Rveda is designed to answer a concrete research question:
 
@@ -33,8 +35,16 @@ This framing matters for benchmark design:
 
 - It tests **clinical reasoning**, not only label recall.
 - It tests **search efficiency**, because the agent must retrieve and inspect evidence before submission.
+- It penalizes **hallucinated or over-aggressive coding behavior** by making verification part of the interaction loop.
 - It supports **human-in-the-loop auditing**, because each step leaves an explicit interaction trace.
-- It rewards **grounded decisions** over confident hallucinations.
+
+## Market Context: Auditing vs. Benchmarking
+
+Established platforms such as FraudLens, Cotiviti, and Optum FWA address a different layer of the problem: post hoc detection of fraud, waste, abuse, and anomalous billing behavior across large claims datasets.
+
+Rveda addresses a different question. It is a **pre-deployment benchmark** for agentic medical coding systems, designed to test whether an AI model arrives at a code through grounded clinical reasoning before deployment.
+
+That distinction is important. Statistical anomaly detection evaluates aggregate billing behavior across populations and claims streams; Rveda evaluates the reasoning trajectory of an individual AI agent as it searches, inspects evidence, and commits to an ICD-10 code. In that sense, Rveda is complementary to enterprise auditing systems: those platforms help catch problematic claims after the fact, while Rveda is designed to test whether an autonomous coding agent should be trusted before deployment.
 
 ## Benchmark Task
 
@@ -127,16 +137,13 @@ In benchmark terms, this acts as a **step penalty**: extra actions consume the f
 
 ### Score Normalization
 
-The final episode score reported by `inference.py` is normalized to a continuous benchmark scale.
+The final episode score reported by `inference.py` is normalized to a bounded 0-1 scale so tasks remain comparable across runs.
 
-- Raw episode reward is standardized before reporting.
-- Final scores are kept consistent across tasks and runs.
-
-This normalization keeps evaluation stable and comparable while preserving the relative ranking between stronger and weaker coding trajectories.
+Episode rewards are standardized before reporting, which keeps evaluation stable while preserving relative ranking between stronger and weaker coding trajectories.
 
 ### Why the Scoring Design Matters
 
-The result is a benchmark that rewards:
+The benchmark therefore rewards:
 
 - correct final coding decisions,
 - efficient evidence gathering,
