@@ -37,6 +37,7 @@ class RvedaEnvironment(Environment):
     # When True, multiple WebSocket clients can connect simultaneously, each
     # getting their own environment instance (when using factory mode in app.py).
     SUPPORTS_CONCURRENT_SESSIONS: bool = True
+    _MAX_EPISODE_STEPS = 8
     _MIN_OPEN_SCORE = 0.0
     _MAX_OPEN_SCORE = 0.99
     _BASE_REWARD = {
@@ -103,6 +104,7 @@ class RvedaEnvironment(Environment):
         self._detailed_info = ""
         self.code_history: list[str] = []
         self.search_history: list[str] = []
+        self._search_result_history: set[tuple[str, ...]] = set()
         self._last_search_codes: set[str] = set()
         self._excludes1_conflict_seen = False
 
@@ -135,24 +137,33 @@ class RvedaEnvironment(Environment):
     ) -> tuple[float, dict[str, float]]:
         policy = self._policy()
         result_count = len(result_codes)
+        result_signature = tuple(result_codes)
+        query_repeated = query in self.search_history[:-1]
+        result_repeated = bool(result_signature) and result_signature in self._search_result_history
         exact_hit = 1.0 if target_code in result_codes else 0.0
         family_hit = 1.0 if any(self._same_family(code, target_code) for code in result_codes) else 0.0
-        novelty_bonus = policy["search_novelty_bonus"] if result_count > 0 and query not in self.search_history[:-1] else 0.0
+        is_novel_search = result_count > 0 and not query_repeated and not result_repeated
+        novelty_bonus = policy["search_novelty_bonus"] if is_novel_search else 0.0
+        result_count_bonus = min(result_count, 5) * policy["search_result_bonus"] if is_novel_search else 0.0
+        target_hit_bonus = exact_hit * policy["search_target_bonus"] if is_novel_search else 0.0
+        family_hit_bonus = family_hit * policy["search_family_bonus"] if is_novel_search else 0.0
         score = self._grade_bounds(
             (
                 0.0
                 + novelty_bonus
-                + min(result_count, 5) * policy["search_result_bonus"]
-                + exact_hit * policy["search_target_bonus"]
-                + family_hit * policy["search_family_bonus"]
+                + result_count_bonus
+                + target_hit_bonus
+                + family_hit_bonus
             )
         )
         return score, {
             "base": 0.0,
+            "query_repeated": 1.0 if query_repeated else 0.0,
+            "result_repeated": 1.0 if result_repeated else 0.0,
             "query_novelty_bonus": novelty_bonus,
-            "result_count_bonus": min(result_count, 5) * policy["search_result_bonus"],
-            "target_hit_bonus": exact_hit * policy["search_target_bonus"],
-            "family_hit_bonus": family_hit * policy["search_family_bonus"],
+            "result_count_bonus": result_count_bonus,
+            "target_hit_bonus": target_hit_bonus,
+            "family_hit_bonus": family_hit_bonus,
             "result_count": float(result_count),
             "final": score,
         }
@@ -165,14 +176,17 @@ class RvedaEnvironment(Environment):
         conflict_seen: bool,
     ) -> tuple[float, dict[str, float]]:
         policy = self._policy()
-        detail_found = 1.0 if details else 0.0
+        detail_seen_before = 1.0 if query in self.code_history else 0.0
+        detail_novel = 1.0 - detail_seen_before
+        detail_relevant = 1.0 if (query in self._last_search_codes or self._same_family(query, target_code) or query == target_code) else 0.0
         search_hit = 1.0 if query in self._last_search_codes else 0.0
         family_hit = 1.0 if self._same_family(query, target_code) else 0.0
         conflict_penalty = -policy["detail_conflict_penalty"] if conflict_seen else 0.0
+        detail_bonus = policy["detail_bonus"] if details and detail_relevant and detail_novel else 0.0
         score = self._grade_bounds(
             (
                 0.0
-                + detail_found * policy["detail_bonus"]
+                + detail_bonus
                 + search_hit * policy["detail_search_hit_bonus"]
                 + family_hit * policy["detail_family_bonus"]
                 + conflict_penalty
@@ -180,7 +194,9 @@ class RvedaEnvironment(Environment):
         )
         return score, {
             "base": 0.0,
-            "detail_found_bonus": detail_found * policy["detail_bonus"],
+            "detail_relevant": detail_relevant,
+            "detail_novel": detail_novel,
+            "detail_found_bonus": detail_bonus,
             "search_alignment_bonus": search_hit * policy["detail_search_hit_bonus"],
             "family_bonus": family_hit * policy["detail_family_bonus"],
             "conflict_penalty": conflict_penalty,
@@ -290,6 +306,7 @@ class RvedaEnvironment(Environment):
         self._detailed_info = ""
         self.code_history = []
         self.search_history = []
+        self._search_result_history = set()
         self._last_search_codes = set()
         self._excludes1_conflict_seen = False
 
@@ -331,6 +348,8 @@ class RvedaEnvironment(Environment):
                 target_code=target_code,
             )
             reward = search_reward
+            if self._last_search_codes:
+                self._search_result_history.add(tuple(sorted(self._last_search_codes)))
             self._detailed_info = (
                 f"Search returned {len(self._search_results)} candidate(s)"
                 + (f" for target family {target_code[:3]}" if target_code else "")
@@ -361,7 +380,17 @@ class RvedaEnvironment(Environment):
             self._detailed_info = f"Submitted coding decision for query: {action.query}"
             done = True
 
-        if self._state.step_count >= 10:
+        timed_out = self._state.step_count >= self._MAX_EPISODE_STEPS and action.action_type != MedicalActionType.SUBMIT
+        if timed_out:
+            reward = 0.0
+            reward_components = {
+                **reward_components,
+                "timeout_penalty": 1.0,
+                "final": reward,
+            }
+            done = True
+            self._detailed_info = "Episode ended without a final SUBMIT decision."
+        elif self._state.step_count >= self._MAX_EPISODE_STEPS:
             done = True
 
         grading = self._build_grading_trace(
@@ -385,6 +414,7 @@ class RvedaEnvironment(Environment):
                 "task_id": self._current_task["task_id"] if self._current_task else None,
                 "difficulty": self._current_task["difficulty"] if self._current_task else None,
                 "excludes1_penalty": excludes1_penalty,
+                "timed_out": timed_out,
             },
         )
 

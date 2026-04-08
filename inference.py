@@ -218,6 +218,7 @@ async def run_task_episode(client: OpenAI, env: RvedaEnv, task_id: str) -> None:
     steps_taken = 0
     score = OPEN_SCORE_MIN
     success = False
+    terminated_without_submit = False
 
     log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
 
@@ -241,6 +242,7 @@ async def run_task_episode(client: OpenAI, env: RvedaEnv, task_id: str) -> None:
             reward = min(max(reward, 0.0), 1.0)
             done = bool(result.done)
             error = None
+            final_action_type = getattr(getattr(obs, "grading", None), "action_type", "")
 
             rewards.append(reward)
             steps_taken = step
@@ -258,11 +260,19 @@ async def run_task_episode(client: OpenAI, env: RvedaEnv, task_id: str) -> None:
             )
 
             if done:
+                terminated_without_submit = final_action_type != "SUBMIT"
                 break
 
-        raw_score = sum(rewards) / MAX_TOTAL_REWARD if MAX_TOTAL_REWARD > 0 else 0.0
-        score = normalize_score(raw_score)
-        success = score >= SUCCESS_SCORE_THRESHOLD
+        if not result.done:
+            terminated_without_submit = True
+
+        if terminated_without_submit:
+            score = OPEN_SCORE_MIN
+            success = False
+        else:
+            raw_score = sum(rewards) / MAX_TOTAL_REWARD if MAX_TOTAL_REWARD > 0 else 0.0
+            score = normalize_score(raw_score)
+            success = score >= SUCCESS_SCORE_THRESHOLD
 
     except Exception:
         success = False
