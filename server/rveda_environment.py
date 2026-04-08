@@ -86,7 +86,7 @@ class RvedaEnvironment(Environment):
             reward=0.0,
         )
 
-    def step(self, action: MedicalAction) -> dict[str, object]:  # type: ignore[override]
+    def step(self, action: MedicalAction) -> MedicalObservation:  # type: ignore[override]
         """
         Execute a workflow step.
 
@@ -94,7 +94,7 @@ class RvedaEnvironment(Environment):
             action: MedicalAction describing the requested workflow operation
 
         Returns:
-            Step payload with observation, reward, done, and info
+            MedicalObservation with search results, details, or submission status
         """
         self._state.step_count += 1
 
@@ -128,20 +128,20 @@ class RvedaEnvironment(Environment):
         if self._state.step_count >= 10:
             done = True
 
-        observation = MedicalObservation(
+        return MedicalObservation(
             patient_note=self._patient_note,
             search_results=self._search_results,
             detailed_info=self._detailed_info,
             current_reward=reward,
             done=done,
             reward=reward,
+            metadata={
+                "query": action.query,
+                "step": self._state.step_count,
+                "task_id": self._current_task["task_id"] if self._current_task else None,
+                "code_history": list(self.code_history),
+            },
         )
-        return {
-            "observation": observation,
-            "reward": reward,
-            "done": done,
-            "info": {},
-        }
 
     @property
     def state(self) -> State:

@@ -42,6 +42,9 @@ except ModuleNotFoundError:
     from models import MedicalAction, MedicalObservation
     from server.rveda_environment import RvedaEnvironment
 
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
+
 
 # Create the app with web interface and README integration
 app = create_app(
@@ -51,6 +54,35 @@ app = create_app(
     env_name="rveda",
     max_concurrent_envs=1,  # increase this number to allow more concurrent WebSocket sessions
 )
+
+
+class StepInfoMiddleware(BaseHTTPMiddleware):
+    """Ensure /step responses include the grader-required info field."""
+
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        if request.url.path != "/step" or response.status_code != 200:
+            return response
+
+        content_type = response.headers.get("content-type", "")
+        if "application/json" not in content_type:
+            return response
+
+        body = b"".join([chunk async for chunk in response.body_iterator])
+        try:
+            payload = json.loads(body)
+        except json.JSONDecodeError:
+            return JSONResponse(content={"detail": "Invalid JSON response from /step"}, status_code=500)
+
+        if isinstance(payload, dict) and "info" not in payload:
+            payload["info"] = {}
+
+        return JSONResponse(content=payload, status_code=response.status_code, headers=dict(response.headers))
+
+
+app.add_middleware(StepInfoMiddleware)
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}

@@ -216,3 +216,4 @@ pycache/
 .agents/
 .codex/
 tester-bot.py
+check-readiness.py
