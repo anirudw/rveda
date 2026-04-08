@@ -47,6 +47,7 @@ class RvedaEnvironment(Environment):
         self._patient_note = ""
         self._search_results: list[SearchResult] = []
         self._detailed_info = ""
+        self.code_history: list[str] = []
 
     def _load_tasks(self) -> list[dict[str, str]]:
         tasks_path = Path(__file__).resolve().parent.parent / "tasks.json"
@@ -74,6 +75,7 @@ class RvedaEnvironment(Environment):
         self._patient_note = self._current_task["patient_note"]
         self._search_results = []
         self._detailed_info = ""
+        self.code_history = []
 
         return MedicalObservation(
             patient_note=self._patient_note,
@@ -84,7 +86,7 @@ class RvedaEnvironment(Environment):
             reward=0.0,
         )
 
-    def step(self, action: MedicalAction) -> MedicalObservation:  # type: ignore[override]
+    def step(self, action: MedicalAction) -> dict[str, object]:  # type: ignore[override]
         """
         Execute a workflow step.
 
@@ -92,7 +94,7 @@ class RvedaEnvironment(Environment):
             action: MedicalAction describing the requested workflow operation
 
         Returns:
-            MedicalObservation with search results, details, or submission status
+            Step payload with observation, reward, done, and info
         """
         self._state.step_count += 1
 
@@ -105,8 +107,12 @@ class RvedaEnvironment(Environment):
         elif action.action_type == MedicalActionType.DETAILS:
             details = get_code_details(action.query)
             if details:
+                excludes = details.get("excludes", "")
+                if any(previous_code in excludes for previous_code in self.code_history):
+                    reward = -1.0
+                self.code_history.append(action.query)
                 self._detailed_info = (
-                    f"{details['long_desc']}\nExcludes: {details['excludes']}"
+                    f"{details['long_desc']}\nExcludes: {excludes}"
                 )
             else:
                 self._detailed_info = ""
@@ -114,7 +120,7 @@ class RvedaEnvironment(Environment):
             target_code = self._current_task["target_code"] if self._current_task else ""
             if action.query == target_code:
                 reward = 1.0
-            elif action.query[:3] == target_code[:3]:
+            elif target_code and action.query[:3] == target_code[:3]:
                 reward = 0.5
             self._detailed_info = f"Submitted coding decision for query: {action.query}"
             done = True
@@ -122,19 +128,20 @@ class RvedaEnvironment(Environment):
         if self._state.step_count >= 10:
             done = True
 
-        return MedicalObservation(
+        observation = MedicalObservation(
             patient_note=self._patient_note,
             search_results=self._search_results,
             detailed_info=self._detailed_info,
             current_reward=reward,
             done=done,
             reward=reward,
-            metadata={
-                "query": action.query,
-                "step": self._state.step_count,
-                "task_id": self._current_task["task_id"] if self._current_task else None,
-            },
         )
+        return {
+            "observation": observation,
+            "reward": reward,
+            "done": done,
+            "info": {},
+        }
 
     @property
     def state(self) -> State:
