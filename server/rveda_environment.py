@@ -100,6 +100,7 @@ class RvedaEnvironment(Environment):
 
         reward = 0.0
         done = False
+        excludes1_penalty = False
 
         if action.action_type == MedicalActionType.SEARCH:
             self._search_results = [SearchResult(**result) for result in search_codes(action.query)]
@@ -109,7 +110,7 @@ class RvedaEnvironment(Environment):
             if details:
                 excludes = details.get("excludes", "")
                 if any(previous_code in excludes for previous_code in self.code_history):
-                    reward = -1.0
+                    excludes1_penalty = True
                 self.code_history.append(action.query)
                 self._detailed_info = (
                     f"{details['long_desc']}\nExcludes: {excludes}"
@@ -140,6 +141,7 @@ class RvedaEnvironment(Environment):
                 "step": self._state.step_count,
                 "task_id": self._current_task["task_id"] if self._current_task else None,
                 "code_history": list(self.code_history),
+                "excludes1_penalty": excludes1_penalty,
             },
         )
 
