@@ -261,6 +261,9 @@ def require_training_stack():
         import torch  # noqa: F401
         from datasets import Dataset  # noqa: F401
         from unsloth import FastLanguageModel  # noqa: F401
+        from unsloth import PatchFastRL  # noqa: F401
+
+        PatchFastRL(FastLanguageModel)
         from trl import GRPOConfig, GRPOTrainer  # noqa: F401
     except Exception as exc:  # pragma: no cover - exercised only when optional deps are missing
         raise RuntimeError(
@@ -365,7 +368,10 @@ def run_grpo_smoke_train(args: argparse.Namespace, output_dir: Path) -> dict[str
 
     import torch
     from datasets import Dataset
+    from unsloth import FastLanguageModel, PatchFastRL
     from trl import GRPOConfig, GRPOTrainer
+
+    PatchFastRL(FastLanguageModel)
 
     train_rows = build_train_rows(args.task_ids, args.samples_per_task)
     save_json(output_dir / "train_rows_preview.json", train_rows[: min(4, len(train_rows))])
