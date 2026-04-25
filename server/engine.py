@@ -12,6 +12,22 @@ DB_PATH = ROOT_DIR / "data" / "icd10.db"
 DATA_PATH = ROOT_DIR / "icd10_mock.json"
 
 
+def _conn_has_rows(conn: sqlite3.Connection) -> bool:
+    """Return True when the current SQLite connection has populated ICD-10 rows."""
+    row = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'icd10_codes'
+        """
+    ).fetchone()
+    if not row or row[0] == 0:
+        return False
+
+    count = conn.execute("SELECT COUNT(*) FROM icd10_codes").fetchone()
+    return bool(count and count[0] > 0)
+
+
 def _db_has_rows(db_path: Path) -> bool:
     """Return True when the packaged SQLite database already has ICD-10 rows."""
     if not db_path.exists():
@@ -19,18 +35,7 @@ def _db_has_rows(db_path: Path) -> bool:
 
     try:
         with sqlite3.connect(db_path) as conn:
-            row = conn.execute(
-                """
-                SELECT COUNT(*)
-                FROM sqlite_master
-                WHERE type = 'table' AND name = 'icd10_codes'
-                """
-            ).fetchone()
-            if not row or row[0] == 0:
-                return False
-
-            count = conn.execute("SELECT COUNT(*) FROM icd10_codes").fetchone()
-            return bool(count and count[0] > 0)
+            return _conn_has_rows(conn)
     except sqlite3.Error:
         return False
 
@@ -44,10 +49,16 @@ def initialize_db(
         return
 
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    with data_path.open("r", encoding="utf-8") as fh:
-        records = json.load(fh)
+    with sqlite3.connect(db_path, timeout=30.0) as conn:
+        # Serialize first-write bootstrap to avoid concurrent DELETE/INSERT races.
+        conn.execute("BEGIN IMMEDIATE")
+        if _conn_has_rows(conn):
+            conn.commit()
+            return
 
-    with sqlite3.connect(db_path) as conn:
+        with data_path.open("r", encoding="utf-8") as fh:
+            records = json.load(fh)
+
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS icd10_codes (

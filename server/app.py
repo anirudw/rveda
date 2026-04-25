@@ -55,7 +55,7 @@ app = create_app(
     MedicalAction,
     MedicalObservation,
     env_name="rveda",
-    max_concurrent_envs=1,  # increase this number to allow more concurrent WebSocket sessions
+    max_concurrent_envs=2,  # conservative default: allow a small number of concurrent WebSocket sessions
 )
 
 
