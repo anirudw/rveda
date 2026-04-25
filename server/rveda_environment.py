@@ -14,6 +14,7 @@ local ICD-10 SQLite engine.
 import json
 import random
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 from openenv.core.env_server.interfaces import Environment
@@ -292,19 +293,31 @@ class RvedaEnvironment(Environment):
             tasks = json.load(fh)
         return tasks
 
-    def reset(self, task_id: str | None = None) -> MedicalObservation:
+    def reset(
+        self,
+        seed: int | None = None,
+        episode_id: str | None = None,
+        **kwargs: Any,
+    ) -> MedicalObservation:
         """
         Reset the environment.
 
         Args:
+            seed: Optional seed for deterministic random task selection
+            episode_id: Optional explicit episode identifier
             task_id: Optional explicit task identifier to load
 
         Returns:
             MedicalObservation with the initial patient note
         """
-        self._state = State(episode_id=str(uuid4()), step_count=0)
+        task_id = kwargs.get("task_id")
+        self._state = State(
+            episode_id=episode_id if episode_id is not None else str(uuid4()),
+            step_count=0,
+        )
         if task_id is None:
-            self._current_task = random.choice(self._tasks)
+            task_selector = random if seed is None else random.Random(seed)
+            self._current_task = task_selector.choice(self._tasks)
         else:
             self._current_task = next(
                 (task for task in self._tasks if task["task_id"] == task_id),
@@ -330,12 +343,18 @@ class RvedaEnvironment(Environment):
             reward=0.0,
         )
 
-    def step(self, action: MedicalAction) -> MedicalObservation:  # type: ignore[override]
+    def step(
+        self,
+        action: MedicalAction,
+        timeout_s: float | None = None,
+        **kwargs: Any,
+    ) -> MedicalObservation:  # type: ignore[override]
         """
         Execute a workflow step.
 
         Args:
             action: MedicalAction describing the requested workflow operation
+            timeout_s: Optional OpenEnv timeout hint (currently unused)
 
         Returns:
             MedicalObservation with search results, details, or submission status
