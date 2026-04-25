@@ -21,10 +21,26 @@ from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
 
 try:
-    from ..models import GradingTrace, MedicalAction, MedicalActionType, MedicalObservation, SearchResult
+    from ..models import (
+        EhrModuleState,
+        EvidenceSnippet,
+        GradingTrace,
+        MedicalAction,
+        MedicalActionType,
+        MedicalObservation,
+        SearchResult,
+    )
     from .engine import get_code_details, initialize_db, search_codes
 except ImportError:
-    from models import GradingTrace, MedicalAction, MedicalActionType, MedicalObservation, SearchResult
+    from models import (
+        EhrModuleState,
+        EvidenceSnippet,
+        GradingTrace,
+        MedicalAction,
+        MedicalActionType,
+        MedicalObservation,
+        SearchResult,
+    )
     from server.engine import get_code_details, initialize_db, search_codes
 
 
@@ -107,7 +123,8 @@ class RvedaEnvironment(Environment):
         initialize_db()
         self._state = State(episode_id=str(uuid4()), step_count=0)
         self._tasks = self._load_tasks()
-        self._current_task: dict[str, str] | None = None
+        self._v2_example_tasks = self._load_v2_example_tasks()
+        self._current_task: dict[str, Any] | None = None
         self._patient_note = ""
         self._search_results: list[SearchResult] = []
         self._detailed_info = ""
@@ -116,6 +133,11 @@ class RvedaEnvironment(Environment):
         self._search_result_history: set[tuple[str, ...]] = set()
         self._last_search_codes: set[str] = set()
         self._excludes1_conflict_seen = False
+        self._ehr_modules: dict[str, dict[str, Any]] = {}
+        self._ehr_remaining_budget: dict[str, int] = {}
+        self._revealed_evidence: dict[str, EvidenceSnippet] = {}
+        self._last_error: str | None = None
+        self._invalid_reason: str | None = None
 
     def _grade_bounds(self, score: float) -> float:
         """Clamp score into the supported reward range."""
@@ -287,11 +309,143 @@ class RvedaEnvironment(Environment):
             excludes1_conflict_seen=self._excludes1_conflict_seen,
         )
 
-    def _load_tasks(self) -> list[dict[str, str]]:
+    def _v2_example_tasks_path(self) -> Path:
+        return Path(__file__).resolve().parent.parent / "examples" / "v2_task_minimal.json"
+
+    def _load_tasks(self) -> list[dict[str, Any]]:
         tasks_path = Path(__file__).resolve().parent.parent / "tasks.json"
         with tasks_path.open("r", encoding="utf-8") as fh:
             tasks = json.load(fh)
         return tasks
+
+    def _load_v2_example_tasks(self) -> list[dict[str, Any]]:
+        v2_example_path = self._v2_example_tasks_path()
+        if v2_example_path.exists():
+            with v2_example_path.open("r", encoding="utf-8") as fh:
+                return [json.load(fh)]
+        return []
+
+    def _reset_ehr_state(self) -> None:
+        self._ehr_modules = self._current_task.get("ehr_modules", {}) if self._current_task else {}
+        self._ehr_remaining_budget = {
+            module_name: max(int(module.get("query_budget", 0)), 0)
+            for module_name, module in self._ehr_modules.items()
+        }
+        self._revealed_evidence = {}
+        self._last_error = None
+        self._invalid_reason = None
+
+    def _ehr_map(self) -> dict[str, EhrModuleState]:
+        ehr_map: dict[str, EhrModuleState] = {}
+        for module_name, module in self._ehr_modules.items():
+            remaining = self._ehr_remaining_budget.get(module_name, 0)
+            revealed_count = sum(
+                1 for snippet in self._revealed_evidence.values() if snippet.module == module_name
+            )
+            if remaining <= 0:
+                status = "exhausted"
+            elif revealed_count > 0:
+                status = "open"
+            else:
+                status = module.get("status", "closed")
+            ehr_map[module_name] = EhrModuleState(
+                status=status,
+                query_budget_remaining=remaining,
+                revealed_count=revealed_count,
+            )
+        return ehr_map
+
+    def _observation(
+        self,
+        *,
+        reward: float,
+        done: bool,
+        grading: GradingTrace | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> MedicalObservation:
+        return MedicalObservation(
+            patient_note=self._patient_note,
+            search_results=self._search_results,
+            detailed_info=self._detailed_info,
+            current_reward=reward,
+            done=done,
+            reward=reward,
+            grading=grading or GradingTrace(),
+            ehr_map=self._ehr_map(),
+            revealed_evidence=list(self._revealed_evidence.values()),
+            last_error=self._last_error,
+            invalid_reason=self._invalid_reason,
+            metadata=metadata or {},
+        )
+
+    def _evidence_matches_query(self, evidence: dict[str, Any], query: str) -> bool:
+        normalized_query = query.strip().lower()
+        if not normalized_query:
+            return True
+
+        haystack_parts = [
+            str(evidence.get("evidence_id", "")),
+            str(evidence.get("text", "")),
+            " ".join(str(code) for code in evidence.get("supports_codes", [])),
+        ]
+        haystack = " ".join(haystack_parts).lower()
+        return any(term in haystack for term in normalized_query.split())
+
+    def _query_ehr(self, module_name: str | None, query: str) -> tuple[float, dict[str, float]]:
+        if not module_name:
+            self._last_error = "missing_module"
+            self._invalid_reason = "QUERY_EHR requires a module."
+            self._detailed_info = self._invalid_reason
+            return 0.0, {"base": 0.0, "invalid_action": 1.0, "final": 0.0}
+
+        module = self._ehr_modules.get(module_name)
+        if module is None:
+            self._last_error = "invalid_module"
+            self._invalid_reason = f"Unknown EHR module: {module_name}"
+            self._detailed_info = self._invalid_reason
+            return 0.0, {"base": 0.0, "invalid_action": 1.0, "final": 0.0}
+
+        remaining = self._ehr_remaining_budget.get(module_name, 0)
+        if remaining <= 0:
+            self._last_error = "query_budget_exhausted"
+            self._invalid_reason = f"EHR module query budget exhausted: {module_name}"
+            self._detailed_info = self._invalid_reason
+            return 0.0, {"base": 0.0, "budget_exhausted": 1.0, "final": 0.0}
+
+        self._last_error = None
+        self._invalid_reason = None
+        self._ehr_remaining_budget[module_name] = remaining - 1
+
+        matched: list[EvidenceSnippet] = []
+        for raw_evidence in module.get("evidence", []):
+            evidence_id = str(raw_evidence.get("evidence_id", ""))
+            if not evidence_id or evidence_id in self._revealed_evidence:
+                continue
+            if not self._evidence_matches_query(raw_evidence, query):
+                continue
+            known_fields = {"evidence_id", "text", "supports_codes"}
+            snippet = EvidenceSnippet(
+                evidence_id=evidence_id,
+                module=module_name,
+                text=str(raw_evidence.get("text", "")),
+                supports_codes=list(raw_evidence.get("supports_codes", [])),
+                metadata={
+                    key: value
+                    for key, value in raw_evidence.items()
+                    if key not in known_fields
+                },
+            )
+            self._revealed_evidence[evidence_id] = snippet
+            matched.append(snippet)
+
+        self._detailed_info = f"QUERY_EHR revealed {len(matched)} evidence snippet(s) from {module_name}."
+        reward = 0.03 if matched else 0.0
+        return reward, {
+            "base": 0.0,
+            "evidence_revealed": float(len(matched)),
+            "query_budget_remaining": float(self._ehr_remaining_budget[module_name]),
+            "final": reward,
+        }
 
     def reset(
         self,
@@ -320,12 +474,16 @@ class RvedaEnvironment(Environment):
             self._current_task = task_selector.choice(self._tasks)
         else:
             self._current_task = next(
-                (task for task in self._tasks if task["task_id"] == task_id),
+                (
+                    task
+                    for task in [*self._tasks, *self._v2_example_tasks]
+                    if task["task_id"] == task_id
+                ),
                 None,
             )
             if self._current_task is None:
                 raise InvalidTaskIdError(task_id)
-        self._patient_note = self._current_task["patient_note"]
+        self._patient_note = self._current_task.get("patient_note", "")
         self._search_results = []
         self._detailed_info = ""
         self.code_history = []
@@ -333,15 +491,9 @@ class RvedaEnvironment(Environment):
         self._search_result_history = set()
         self._last_search_codes = set()
         self._excludes1_conflict_seen = False
+        self._reset_ehr_state()
 
-        return MedicalObservation(
-            patient_note=self._patient_note,
-            search_results=self._search_results,
-            detailed_info=self._detailed_info,
-            current_reward=0.0,
-            done=False,
-            reward=0.0,
-        )
+        return self._observation(reward=0.0, done=False)
 
     def step(
         self,
@@ -366,6 +518,8 @@ class RvedaEnvironment(Environment):
         excludes1_penalty = False
         grader_used = self._grader_name()
         reward_components: dict[str, float] = {"final": 0.0}
+        self._last_error = None
+        self._invalid_reason = None
 
         if action.action_type == MedicalActionType.SEARCH:
             self.search_history.append(action.query)
@@ -380,10 +534,7 @@ class RvedaEnvironment(Environment):
             reward = search_reward
             if self._last_search_codes:
                 self._search_result_history.add(tuple(sorted(self._last_search_codes)))
-            self._detailed_info = (
-                f"Search returned {len(self._search_results)} candidate(s)"
-                + (f" for target family {target_code[:3]}" if target_code else "")
-            )
+            self._detailed_info = f"Search returned {len(self._search_results)} candidate(s)"
         elif action.action_type == MedicalActionType.DETAILS:
             details = get_code_details(action.query)
             if details:
@@ -409,6 +560,8 @@ class RvedaEnvironment(Environment):
             reward, grader_used, reward_components = self._grade_submission(action.query, target_code)
             self._detailed_info = f"Submitted coding decision for query: {action.query}"
             done = True
+        elif action.action_type == MedicalActionType.QUERY_EHR:
+            reward, reward_components = self._query_ehr(action.module, action.query)
 
         timed_out = self._state.step_count >= self._MAX_EPISODE_STEPS and action.action_type != MedicalActionType.SUBMIT
         if timed_out:
@@ -430,16 +583,13 @@ class RvedaEnvironment(Environment):
             reward_components=reward_components,
         )
 
-        return MedicalObservation(
-            patient_note=self._patient_note,
-            search_results=self._search_results,
-            detailed_info=self._detailed_info,
-            current_reward=reward,
-            done=done,
+        return self._observation(
             reward=reward,
+            done=done,
             grading=grading,
             metadata={
                 "query": action.query,
+                "module": action.module,
                 "step": self._state.step_count,
                 "task_id": self._current_task["task_id"] if self._current_task else None,
                 "difficulty": self._current_task["difficulty"] if self._current_task else None,

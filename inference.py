@@ -47,7 +47,7 @@ import json
 import os
 import textwrap
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 #dot_env
 from dotenv import load_dotenv
@@ -71,21 +71,23 @@ SUCCESS_SCORE_THRESHOLD = 0.1  # normalized score in [0, 1]
 MAX_TOTAL_REWARD = 1.0
 OPEN_SCORE_MIN = 0.001
 OPEN_SCORE_MAX = 0.999
-VALID_ACTION_TYPES = {"SEARCH", "DETAILS", "SUBMIT"}
+VALID_ACTION_TYPES = {"SEARCH", "DETAILS", "SUBMIT", "QUERY_EHR"}
 
 SYSTEM_PROMPT = textwrap.dedent(
     """
     You are an expert Medical Coder agent.
-    Your task is to review a patient note, search the ICD-10 taxonomy, and SUBMIT the most accurate code.
+    Your task is to review a patient note, reveal any hidden EHR evidence when needed, search the ICD-10 taxonomy, and SUBMIT the most accurate code.
     
     You must reply ONLY with a valid JSON object matching this schema:
     {"action_type": "SEARCH", "query": "keyword"} - Use short, single-word keywords (e.g., "hypertension").
     {"action_type": "DETAILS", "query": "code"} - Look up rules for a specific code (e.g., "I10").
+    {"action_type": "QUERY_EHR", "module": "module_name", "query": "keyword"} - Query one hidden EHR module when the observation exposes ehr_map.
     {"action_type": "SUBMIT", "query": "code"} - Submit the final ICD-10 code (e.g., "I10").
     
     CRITICAL RULES:
     1. If your SEARCH returns empty results, try a DIFFERENT, shorter keyword. Do NOT repeat the same search.
-    2. Once you see the correct code in the Search Results, you MUST use the SUBMIT action.
+    2. If the observation shows closed EHR modules and no decisive evidence is visible, use QUERY_EHR before guessing.
+    3. Once you see the correct code in the Search Results, you MUST use the SUBMIT action.
     """
 ).strip()
 
@@ -145,8 +147,8 @@ def normalize_score(raw_score: float) -> float:
     return clamped
 
 
-def parse_action_or_fallback(message: str) -> dict[str, str]:
-    fallback = {"action_type": "SEARCH", "query": "diabetes"}
+def parse_action_or_fallback(message: str) -> dict[str, Any]:
+    fallback: dict[str, Any] = {"action_type": "SEARCH", "query": "diabetes", "module": None}
 
     try:
         parsed = json.loads(message)
@@ -158,6 +160,7 @@ def parse_action_or_fallback(message: str) -> dict[str, str]:
 
     action_type = parsed.get("action_type")
     query = parsed.get("query")
+    module = parsed.get("module")
     if not isinstance(action_type, str) or not isinstance(query, str):
         return fallback
 
@@ -166,7 +169,15 @@ def parse_action_or_fallback(message: str) -> dict[str, str]:
     if not normalized_query or normalized_action not in VALID_ACTION_TYPES:
         return fallback
 
-    return {"action_type": normalized_action, "query": normalized_query}
+    normalized_module = module.strip() if isinstance(module, str) and module.strip() else None
+    if normalized_action == "QUERY_EHR" and normalized_module is None:
+        return fallback
+
+    return {
+        "action_type": normalized_action,
+        "query": normalized_query,
+        "module": normalized_module,
+    }
 
 
 def build_user_prompt(step: int, history: List[str], obs) -> str:
@@ -175,13 +186,21 @@ def build_user_prompt(step: int, history: List[str], obs) -> str:
     patient_note = obs.patient_note if obs else "N/A"
     search_results = obs.search_results if obs else []
     detailed_info = obs.detailed_info if obs else ""
+    ehr_map = getattr(obs, "ehr_map", {}) if obs else {}
+    revealed_evidence = getattr(obs, "revealed_evidence", []) if obs else []
+    last_error = getattr(obs, "last_error", None) if obs else None
+    invalid_reason = getattr(obs, "invalid_reason", None) if obs else None
     
     return textwrap.dedent(
         f"""
         Step: {step}
         Patient Note: {patient_note}
         Search Results: {search_results}
+        EHR Map: {ehr_map}
+        Revealed Evidence: {revealed_evidence}
         Detailed Info: {detailed_info}
+        Last Error: {last_error}
+        Invalid Reason: {invalid_reason}
         
         Previous steps history:
         {history_block}
@@ -234,14 +253,18 @@ async def run_task_episode(client: OpenAI, env: RvedaEnv, task_id: str) -> None:
             parsed = parse_action_or_fallback(message)
 
             result = await env.step(
-                RvedaAction(action_type=parsed["action_type"], query=parsed["query"])
+                RvedaAction(
+                    action_type=parsed["action_type"],
+                    query=parsed["query"],
+                    module=parsed["module"],
+                )
             )
             obs = result.observation
 
             reward = float(result.reward) if isinstance(result.reward, (int, float)) else 0.0
             reward = min(max(reward, 0.0), 1.0)
             done = bool(result.done)
-            error = None
+            error = getattr(obs, "last_error", None)
             final_action_type = getattr(getattr(obs, "grading", None), "action_type", "")
 
             rewards.append(reward)
@@ -249,14 +272,22 @@ async def run_task_episode(client: OpenAI, env: RvedaEnv, task_id: str) -> None:
 
             log_step(
                 step=step,
-                action=f"{parsed['action_type']}('{parsed['query']}')",
+                action=(
+                    f"{parsed['action_type']}('{parsed['module']}', '{parsed['query']}')"
+                    if parsed["action_type"] == "QUERY_EHR"
+                    else f"{parsed['action_type']}('{parsed['query']}')"
+                ),
                 reward=reward,
                 done=done,
                 error=error,
             )
 
             history.append(
-                f"Step {step}: {parsed['action_type']}({parsed['query']!r}) -> reward {reward:+.2f}"
+                (
+                    f"Step {step}: QUERY_EHR(module={parsed['module']!r}, query={parsed['query']!r}) -> reward {reward:+.2f}"
+                    if parsed["action_type"] == "QUERY_EHR"
+                    else f"Step {step}: {parsed['action_type']}({parsed['query']!r}) -> reward {reward:+.2f}"
+                )
             )
 
             if done:
