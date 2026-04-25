@@ -131,11 +131,13 @@ def load_task_ids() -> list[str]:
                 if isinstance(item, dict) and item.get("task_id")
             ]
             if task_ids:
+                if "v2_easy_overweight_schema_v1" not in task_ids:
+                    task_ids.insert(0, "v2_easy_overweight_schema_v1")
                 return task_ids
         except (ValueError, OSError):
             pass
 
-    return ["easy_endo_1", "medium_endo_1", "hard_cardio_1"]
+    return ["v2_easy_overweight_schema_v1", "easy_endo_1", "medium_endo_1", "hard_cardio_1"]
 
 
 def normalize_score(raw_score: float) -> float:
