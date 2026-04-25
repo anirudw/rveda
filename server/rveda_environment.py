@@ -54,6 +54,14 @@ class RvedaEnvironment(Environment):
         "family": 0.46,
         "wrong": 0.12,
     }
+    _SENSITIVE_REWARD_COMPONENT_KEYS = {
+        "target_hit_bonus",
+        "family_hit_bonus",
+        "exact_match",
+        "family_match",
+        "family_bonus",
+        "detail_relevant",
+    }
     _GRADER_POLICIES = {
         "easy": {
             "search_novelty_bonus": 0.01,
@@ -280,7 +288,11 @@ class RvedaEnvironment(Environment):
             step=self._state.step_count,
             task_id=task_id,
             reward=reward,
-            reward_components=reward_components,
+            reward_components={
+                key: value
+                for key, value in reward_components.items()
+                if key not in self._SENSITIVE_REWARD_COMPONENT_KEYS
+            },
             search_history=list(self.search_history),
             code_history=list(self.code_history),
             last_search_codes=sorted(self._last_search_codes),
@@ -380,10 +392,7 @@ class RvedaEnvironment(Environment):
             reward = search_reward
             if self._last_search_codes:
                 self._search_result_history.add(tuple(sorted(self._last_search_codes)))
-            self._detailed_info = (
-                f"Search returned {len(self._search_results)} candidate(s)"
-                + (f" for target family {target_code[:3]}" if target_code else "")
-            )
+            self._detailed_info = f"Search returned {len(self._search_results)} candidate(s)"
         elif action.action_type == MedicalActionType.DETAILS:
             details = get_code_details(action.query)
             if details:
@@ -441,8 +450,6 @@ class RvedaEnvironment(Environment):
             metadata={
                 "query": action.query,
                 "step": self._state.step_count,
-                "task_id": self._current_task["task_id"] if self._current_task else None,
-                "difficulty": self._current_task["difficulty"] if self._current_task else None,
                 "excludes1_penalty": excludes1_penalty,
                 "timed_out": timed_out,
             },

@@ -49,6 +49,30 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 
+SENSITIVE_REWARD_COMPONENT_KEYS = {
+    "target_hit_bonus",
+    "family_hit_bonus",
+    "exact_match",
+    "family_match",
+    "family_bonus",
+    "detail_relevant",
+}
+
+
+def _sanitize_visible_grading(grading: dict) -> dict:
+    if not isinstance(grading, dict):
+        return {}
+    sanitized = dict(grading)
+    reward_components = sanitized.get("reward_components")
+    if isinstance(reward_components, dict):
+        sanitized["reward_components"] = {
+            key: value
+            for key, value in reward_components.items()
+            if key not in SENSITIVE_REWARD_COMPONENT_KEYS
+        }
+    return sanitized
+
+
 # Create the app with web interface and README integration
 app = create_app(
     RvedaEnvironment,
@@ -79,7 +103,7 @@ class StepInfoMiddleware(BaseHTTPMiddleware):
 
         if isinstance(payload, dict):
             grading = payload.get("observation", {}).get("grading", {})
-            payload["info"] = grading if isinstance(grading, dict) else {}
+            payload["info"] = _sanitize_visible_grading(grading)
 
         return JSONResponse(content=payload, status_code=response.status_code, headers=dict(response.headers))
 
