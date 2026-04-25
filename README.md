@@ -21,6 +21,12 @@ The repository is intentionally lightweight: the current build uses a local SQLi
 
 Although the included baseline is a single-agent loop, the environment is structured for broader multi-agent experimentation, such as retriever-coder-auditor pipelines, while preserving a standardized evaluation interface.
 
+## Deployment Status
+
+- Active Round 2 development Space: `https://huggingface.co/spaces/anirudw/rveda-rcm-arena`
+- Archived Round 1 baseline Space: `https://huggingface.co/spaces/anirudw/rveda`
+- This repository currently contains the active OpenEnv migration work and the frozen V2 contract artifacts, but the live runtime is still mostly the Round 1 medical-coding environment while Fog-of-War, policy drift, and structured claim mechanics are implemented.
+
 ## Why Rveda
 
 Medical coding sits inside a much larger operational and financial surface area. A UC San Diego and *Health Affairs* analysis projected that aggressive diagnostic coding intensity could drive [more than $200 billion in Medicare overpayments over a decade](https://www.sciencedaily.com/releases/2017/02/170207092727.htm). A recent Zinnov industry report similarly projects U.S. healthcare revenue cycle management spend to reach [USD 200-210 billion by 2029](https://zinnov.com/centers-of-excellence/the-200-billion-question-why-the-future-of-healthcare-rcm-may-belong-to-india) as billing workflows become more fragmented and administratively heavy. Those figures do not imply that a lightweight benchmark solves the full problem, but they do show why coding behavior is not a harmless toy task: inaccurate, over-aggressive, or weakly verified coding decisions can scale into real financial and operational damage.
