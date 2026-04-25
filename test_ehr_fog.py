@@ -1,6 +1,7 @@
 """Smoke tests for the V2 EHR Fog-of-War slice."""
 
 from client import RvedaEnv
+from inference import parse_action_or_fallback
 from models import MedicalAction, MedicalActionType
 from server.rveda_environment import RvedaEnvironment
 
@@ -126,3 +127,27 @@ def test_client_parse_result_preserves_ehr_fields() -> None:
     assert result.observation.invalid_reason == (
         "EHR module query budget exhausted: encounter_note"
     )
+
+
+def test_inference_parser_accepts_query_ehr_with_module() -> None:
+    parsed = parse_action_or_fallback(
+        '{"action_type":"QUERY_EHR","module":"encounter_note","query":"BMI"}'
+    )
+
+    assert parsed == {
+        "action_type": "QUERY_EHR",
+        "module": "encounter_note",
+        "query": "BMI",
+    }
+
+
+def test_search_observation_does_not_leak_target_family() -> None:
+    env = RvedaEnvironment()
+    env.reset(task_id="easy_endo_1")
+
+    observation = env.step(
+        MedicalAction(action_type=MedicalActionType.SEARCH, query="weight")
+    )
+
+    assert "target family" not in observation.detailed_info.lower()
+    assert "E66" not in observation.detailed_info

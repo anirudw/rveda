@@ -1,62 +1,1262 @@
 [
-  {
-    "code": "E11.9",
-    "short_desc": "Type 2 diabetes mellitus without complications",
-    "long_desc": "Type 2 diabetes mellitus without any specified complications.",
-    "excludes": "Excludes1: Type 1 diabetes (E10.-), gestational diabetes (O24.4-)"
-  },
-  {
-    "code": "E11.65",
-    "short_desc": "Type 2 diabetes mellitus with hyperglycemia",
-    "long_desc": "Type 2 diabetes mellitus with poorly controlled blood sugar / hyperglycemia.",
-    "excludes": "Excludes1: Type 1 diabetes with hyperglycemia (E10.65)"
-  },
-  {
-    "code": "E11.22",
-    "short_desc": "Type 2 diabetes with diabetic chronic kidney disease",
-    "long_desc": "Type 2 diabetes mellitus with diabetic chronic kidney disease. Use additional code to identify stage of chronic kidney disease.",
-    "excludes": "Excludes1: Type 1 diabetes with CKD (E10.22)"
-  },
-  {
-    "code": "N18.3",
-    "short_desc": "Chronic kidney disease, stage 3 (moderate)",
-    "long_desc": "Chronic kidney disease, stage 3.",
-    "excludes": "Excludes1: acute kidney failure (N17.-)"
-  },
-  {
-    "code": "E03.9",
-    "short_desc": "Hypothyroidism, unspecified",
-    "long_desc": "Unspecified hypothyroidism.",
-    "excludes": "Excludes1: autoimmune thyroiditis / Hashimoto's (E06.3)"
-  },
-  {
-    "code": "E06.3",
-    "short_desc": "Autoimmune thyroiditis",
-    "long_desc": "Autoimmune thyroiditis, including Hashimoto's disease.",
-    "excludes": "Excludes1: unspecified hypothyroidism (E03.9)"
-  },
-  {
-    "code": "E66.01",
-    "short_desc": "Morbid (severe) obesity due to excess calories",
-    "long_desc": "Morbid obesity due to excess calories. Body mass index (BMI) over 40.",
-    "excludes": "Excludes1: Overweight (E66.3), Obesity due to endocrine condition (E66.8)"
-  },
-  {
-    "code": "E66.3",
-    "short_desc": "Overweight",
-    "long_desc": "Overweight, BMI 25.0 to 29.9.",
-    "excludes": "Excludes1: Morbid obesity (E66.01)"
-  },
-  {
-    "code": "R07.9",
-    "short_desc": "Chest pain, unspecified",
-    "long_desc": "Unspecified chest pain.",
-    "excludes": "Excludes1: myocardial infarction / heart attack (I21.-)"
-  },
-  {
-    "code": "I21.9",
-    "short_desc": "Acute myocardial infarction, unspecified",
-    "long_desc": "Acute myocardial infarction, unspecified. Heart attack.",
-    "excludes": "Excludes1: old myocardial infarction (I25.2)"
-  }
+    {
+        "code":  "E11.9",
+        "short_desc":  "Type 2 diabetes mellitus without complications",
+        "long_desc":  "Type 2 diabetes mellitus without any specified complications.",
+        "excludes":  "Excludes1: Type 1 diabetes (E10.-), gestational diabetes (O24.4-)"
+    },
+    {
+        "code":  "E11.65",
+        "short_desc":  "Type 2 diabetes mellitus with hyperglycemia",
+        "long_desc":  "Type 2 diabetes mellitus with poorly controlled blood sugar / hyperglycemia.",
+        "excludes":  "Excludes1: Type 1 diabetes with hyperglycemia (E10.65)"
+    },
+    {
+        "code":  "E11.22",
+        "short_desc":  "Type 2 diabetes with diabetic chronic kidney disease",
+        "long_desc":  "Type 2 diabetes mellitus with diabetic chronic kidney disease. Use additional code to identify stage of chronic kidney disease.",
+        "excludes":  "Excludes1: Type 1 diabetes with CKD (E10.22)"
+    },
+    {
+        "code":  "N18.3",
+        "short_desc":  "Chronic kidney disease, stage 3 (moderate)",
+        "long_desc":  "Chronic kidney disease, stage 3.",
+        "excludes":  "Excludes1: acute kidney failure (N17.-)"
+    },
+    {
+        "code":  "E03.9",
+        "short_desc":  "Hypothyroidism, unspecified",
+        "long_desc":  "Unspecified hypothyroidism.",
+        "excludes":  "Excludes1: autoimmune thyroiditis / Hashimoto\u0027s (E06.3)"
+    },
+    {
+        "code":  "E06.3",
+        "short_desc":  "Autoimmune thyroiditis",
+        "long_desc":  "Autoimmune thyroiditis, including Hashimoto\u0027s disease.",
+        "excludes":  "Excludes1: unspecified hypothyroidism (E03.9)"
+    },
+    {
+        "code":  "E66.01",
+        "short_desc":  "Morbid (severe) obesity due to excess calories",
+        "long_desc":  "Morbid obesity due to excess calories. Body mass index (BMI) over 40.",
+        "excludes":  "Excludes1: Overweight (E66.3), Obesity due to endocrine condition (E66.8)"
+    },
+    {
+        "code":  "E66.3",
+        "short_desc":  "Overweight",
+        "long_desc":  "Overweight, BMI 25.0 to 29.9.",
+        "excludes":  "Excludes1: Morbid obesity (E66.01)"
+    },
+    {
+        "code":  "R07.9",
+        "short_desc":  "Chest pain, unspecified",
+        "long_desc":  "Unspecified chest pain.",
+        "excludes":  "Excludes1: myocardial infarction / heart attack (I21.-)"
+    },
+    {
+        "code":  "I21.9",
+        "short_desc":  "Acute myocardial infarction, unspecified",
+        "long_desc":  "Acute myocardial infarction, unspecified. Heart attack.",
+        "excludes":  "Excludes1: old myocardial infarction (I25.2)"
+    },
+    {
+        "code":  "Z90.001",
+        "short_desc":  "Benchmark mock diagnosis 001",
+        "long_desc":  "Synthetic ICD candidate 001 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.002",
+        "short_desc":  "Benchmark mock diagnosis 002",
+        "long_desc":  "Synthetic ICD candidate 002 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.003",
+        "short_desc":  "Benchmark mock diagnosis 003",
+        "long_desc":  "Synthetic ICD candidate 003 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.004",
+        "short_desc":  "Benchmark mock diagnosis 004",
+        "long_desc":  "Synthetic ICD candidate 004 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.005",
+        "short_desc":  "Benchmark mock diagnosis 005",
+        "long_desc":  "Synthetic ICD candidate 005 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.006",
+        "short_desc":  "Benchmark mock diagnosis 006",
+        "long_desc":  "Synthetic ICD candidate 006 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.007",
+        "short_desc":  "Benchmark mock diagnosis 007",
+        "long_desc":  "Synthetic ICD candidate 007 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.008",
+        "short_desc":  "Benchmark mock diagnosis 008",
+        "long_desc":  "Synthetic ICD candidate 008 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.009",
+        "short_desc":  "Benchmark mock diagnosis 009",
+        "long_desc":  "Synthetic ICD candidate 009 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.010",
+        "short_desc":  "Benchmark mock diagnosis 010",
+        "long_desc":  "Synthetic ICD candidate 010 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.011",
+        "short_desc":  "Benchmark mock diagnosis 011",
+        "long_desc":  "Synthetic ICD candidate 011 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.012",
+        "short_desc":  "Benchmark mock diagnosis 012",
+        "long_desc":  "Synthetic ICD candidate 012 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.013",
+        "short_desc":  "Benchmark mock diagnosis 013",
+        "long_desc":  "Synthetic ICD candidate 013 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.014",
+        "short_desc":  "Benchmark mock diagnosis 014",
+        "long_desc":  "Synthetic ICD candidate 014 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.015",
+        "short_desc":  "Benchmark mock diagnosis 015",
+        "long_desc":  "Synthetic ICD candidate 015 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.016",
+        "short_desc":  "Benchmark mock diagnosis 016",
+        "long_desc":  "Synthetic ICD candidate 016 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.017",
+        "short_desc":  "Benchmark mock diagnosis 017",
+        "long_desc":  "Synthetic ICD candidate 017 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.018",
+        "short_desc":  "Benchmark mock diagnosis 018",
+        "long_desc":  "Synthetic ICD candidate 018 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.019",
+        "short_desc":  "Benchmark mock diagnosis 019",
+        "long_desc":  "Synthetic ICD candidate 019 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.020",
+        "short_desc":  "Benchmark mock diagnosis 020",
+        "long_desc":  "Synthetic ICD candidate 020 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.021",
+        "short_desc":  "Benchmark mock diagnosis 021",
+        "long_desc":  "Synthetic ICD candidate 021 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.022",
+        "short_desc":  "Benchmark mock diagnosis 022",
+        "long_desc":  "Synthetic ICD candidate 022 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.023",
+        "short_desc":  "Benchmark mock diagnosis 023",
+        "long_desc":  "Synthetic ICD candidate 023 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.024",
+        "short_desc":  "Benchmark mock diagnosis 024",
+        "long_desc":  "Synthetic ICD candidate 024 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.025",
+        "short_desc":  "Benchmark mock diagnosis 025",
+        "long_desc":  "Synthetic ICD candidate 025 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.026",
+        "short_desc":  "Benchmark mock diagnosis 026",
+        "long_desc":  "Synthetic ICD candidate 026 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.027",
+        "short_desc":  "Benchmark mock diagnosis 027",
+        "long_desc":  "Synthetic ICD candidate 027 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.028",
+        "short_desc":  "Benchmark mock diagnosis 028",
+        "long_desc":  "Synthetic ICD candidate 028 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.029",
+        "short_desc":  "Benchmark mock diagnosis 029",
+        "long_desc":  "Synthetic ICD candidate 029 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.030",
+        "short_desc":  "Benchmark mock diagnosis 030",
+        "long_desc":  "Synthetic ICD candidate 030 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.031",
+        "short_desc":  "Benchmark mock diagnosis 031",
+        "long_desc":  "Synthetic ICD candidate 031 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.032",
+        "short_desc":  "Benchmark mock diagnosis 032",
+        "long_desc":  "Synthetic ICD candidate 032 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.033",
+        "short_desc":  "Benchmark mock diagnosis 033",
+        "long_desc":  "Synthetic ICD candidate 033 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.034",
+        "short_desc":  "Benchmark mock diagnosis 034",
+        "long_desc":  "Synthetic ICD candidate 034 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.035",
+        "short_desc":  "Benchmark mock diagnosis 035",
+        "long_desc":  "Synthetic ICD candidate 035 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.036",
+        "short_desc":  "Benchmark mock diagnosis 036",
+        "long_desc":  "Synthetic ICD candidate 036 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.037",
+        "short_desc":  "Benchmark mock diagnosis 037",
+        "long_desc":  "Synthetic ICD candidate 037 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.038",
+        "short_desc":  "Benchmark mock diagnosis 038",
+        "long_desc":  "Synthetic ICD candidate 038 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.039",
+        "short_desc":  "Benchmark mock diagnosis 039",
+        "long_desc":  "Synthetic ICD candidate 039 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.040",
+        "short_desc":  "Benchmark mock diagnosis 040",
+        "long_desc":  "Synthetic ICD candidate 040 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.041",
+        "short_desc":  "Benchmark mock diagnosis 041",
+        "long_desc":  "Synthetic ICD candidate 041 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.042",
+        "short_desc":  "Benchmark mock diagnosis 042",
+        "long_desc":  "Synthetic ICD candidate 042 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.043",
+        "short_desc":  "Benchmark mock diagnosis 043",
+        "long_desc":  "Synthetic ICD candidate 043 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.044",
+        "short_desc":  "Benchmark mock diagnosis 044",
+        "long_desc":  "Synthetic ICD candidate 044 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.045",
+        "short_desc":  "Benchmark mock diagnosis 045",
+        "long_desc":  "Synthetic ICD candidate 045 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.046",
+        "short_desc":  "Benchmark mock diagnosis 046",
+        "long_desc":  "Synthetic ICD candidate 046 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.047",
+        "short_desc":  "Benchmark mock diagnosis 047",
+        "long_desc":  "Synthetic ICD candidate 047 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.048",
+        "short_desc":  "Benchmark mock diagnosis 048",
+        "long_desc":  "Synthetic ICD candidate 048 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.049",
+        "short_desc":  "Benchmark mock diagnosis 049",
+        "long_desc":  "Synthetic ICD candidate 049 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.050",
+        "short_desc":  "Benchmark mock diagnosis 050",
+        "long_desc":  "Synthetic ICD candidate 050 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.051",
+        "short_desc":  "Benchmark mock diagnosis 051",
+        "long_desc":  "Synthetic ICD candidate 051 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.052",
+        "short_desc":  "Benchmark mock diagnosis 052",
+        "long_desc":  "Synthetic ICD candidate 052 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.053",
+        "short_desc":  "Benchmark mock diagnosis 053",
+        "long_desc":  "Synthetic ICD candidate 053 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.054",
+        "short_desc":  "Benchmark mock diagnosis 054",
+        "long_desc":  "Synthetic ICD candidate 054 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.055",
+        "short_desc":  "Benchmark mock diagnosis 055",
+        "long_desc":  "Synthetic ICD candidate 055 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.056",
+        "short_desc":  "Benchmark mock diagnosis 056",
+        "long_desc":  "Synthetic ICD candidate 056 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.057",
+        "short_desc":  "Benchmark mock diagnosis 057",
+        "long_desc":  "Synthetic ICD candidate 057 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.058",
+        "short_desc":  "Benchmark mock diagnosis 058",
+        "long_desc":  "Synthetic ICD candidate 058 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.059",
+        "short_desc":  "Benchmark mock diagnosis 059",
+        "long_desc":  "Synthetic ICD candidate 059 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.060",
+        "short_desc":  "Benchmark mock diagnosis 060",
+        "long_desc":  "Synthetic ICD candidate 060 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.061",
+        "short_desc":  "Benchmark mock diagnosis 061",
+        "long_desc":  "Synthetic ICD candidate 061 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.062",
+        "short_desc":  "Benchmark mock diagnosis 062",
+        "long_desc":  "Synthetic ICD candidate 062 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.063",
+        "short_desc":  "Benchmark mock diagnosis 063",
+        "long_desc":  "Synthetic ICD candidate 063 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.064",
+        "short_desc":  "Benchmark mock diagnosis 064",
+        "long_desc":  "Synthetic ICD candidate 064 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.065",
+        "short_desc":  "Benchmark mock diagnosis 065",
+        "long_desc":  "Synthetic ICD candidate 065 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.066",
+        "short_desc":  "Benchmark mock diagnosis 066",
+        "long_desc":  "Synthetic ICD candidate 066 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.067",
+        "short_desc":  "Benchmark mock diagnosis 067",
+        "long_desc":  "Synthetic ICD candidate 067 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.068",
+        "short_desc":  "Benchmark mock diagnosis 068",
+        "long_desc":  "Synthetic ICD candidate 068 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.069",
+        "short_desc":  "Benchmark mock diagnosis 069",
+        "long_desc":  "Synthetic ICD candidate 069 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.070",
+        "short_desc":  "Benchmark mock diagnosis 070",
+        "long_desc":  "Synthetic ICD candidate 070 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.071",
+        "short_desc":  "Benchmark mock diagnosis 071",
+        "long_desc":  "Synthetic ICD candidate 071 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.072",
+        "short_desc":  "Benchmark mock diagnosis 072",
+        "long_desc":  "Synthetic ICD candidate 072 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.073",
+        "short_desc":  "Benchmark mock diagnosis 073",
+        "long_desc":  "Synthetic ICD candidate 073 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.074",
+        "short_desc":  "Benchmark mock diagnosis 074",
+        "long_desc":  "Synthetic ICD candidate 074 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.075",
+        "short_desc":  "Benchmark mock diagnosis 075",
+        "long_desc":  "Synthetic ICD candidate 075 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.076",
+        "short_desc":  "Benchmark mock diagnosis 076",
+        "long_desc":  "Synthetic ICD candidate 076 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.077",
+        "short_desc":  "Benchmark mock diagnosis 077",
+        "long_desc":  "Synthetic ICD candidate 077 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.078",
+        "short_desc":  "Benchmark mock diagnosis 078",
+        "long_desc":  "Synthetic ICD candidate 078 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.079",
+        "short_desc":  "Benchmark mock diagnosis 079",
+        "long_desc":  "Synthetic ICD candidate 079 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.080",
+        "short_desc":  "Benchmark mock diagnosis 080",
+        "long_desc":  "Synthetic ICD candidate 080 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.081",
+        "short_desc":  "Benchmark mock diagnosis 081",
+        "long_desc":  "Synthetic ICD candidate 081 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.082",
+        "short_desc":  "Benchmark mock diagnosis 082",
+        "long_desc":  "Synthetic ICD candidate 082 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.083",
+        "short_desc":  "Benchmark mock diagnosis 083",
+        "long_desc":  "Synthetic ICD candidate 083 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.084",
+        "short_desc":  "Benchmark mock diagnosis 084",
+        "long_desc":  "Synthetic ICD candidate 084 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.085",
+        "short_desc":  "Benchmark mock diagnosis 085",
+        "long_desc":  "Synthetic ICD candidate 085 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.086",
+        "short_desc":  "Benchmark mock diagnosis 086",
+        "long_desc":  "Synthetic ICD candidate 086 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.087",
+        "short_desc":  "Benchmark mock diagnosis 087",
+        "long_desc":  "Synthetic ICD candidate 087 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.088",
+        "short_desc":  "Benchmark mock diagnosis 088",
+        "long_desc":  "Synthetic ICD candidate 088 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.089",
+        "short_desc":  "Benchmark mock diagnosis 089",
+        "long_desc":  "Synthetic ICD candidate 089 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.090",
+        "short_desc":  "Benchmark mock diagnosis 090",
+        "long_desc":  "Synthetic ICD candidate 090 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.091",
+        "short_desc":  "Benchmark mock diagnosis 091",
+        "long_desc":  "Synthetic ICD candidate 091 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.092",
+        "short_desc":  "Benchmark mock diagnosis 092",
+        "long_desc":  "Synthetic ICD candidate 092 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.093",
+        "short_desc":  "Benchmark mock diagnosis 093",
+        "long_desc":  "Synthetic ICD candidate 093 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.094",
+        "short_desc":  "Benchmark mock diagnosis 094",
+        "long_desc":  "Synthetic ICD candidate 094 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.095",
+        "short_desc":  "Benchmark mock diagnosis 095",
+        "long_desc":  "Synthetic ICD candidate 095 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.096",
+        "short_desc":  "Benchmark mock diagnosis 096",
+        "long_desc":  "Synthetic ICD candidate 096 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.097",
+        "short_desc":  "Benchmark mock diagnosis 097",
+        "long_desc":  "Synthetic ICD candidate 097 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.098",
+        "short_desc":  "Benchmark mock diagnosis 098",
+        "long_desc":  "Synthetic ICD candidate 098 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.099",
+        "short_desc":  "Benchmark mock diagnosis 099",
+        "long_desc":  "Synthetic ICD candidate 099 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.100",
+        "short_desc":  "Benchmark mock diagnosis 100",
+        "long_desc":  "Synthetic ICD candidate 100 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.101",
+        "short_desc":  "Benchmark mock diagnosis 101",
+        "long_desc":  "Synthetic ICD candidate 101 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.102",
+        "short_desc":  "Benchmark mock diagnosis 102",
+        "long_desc":  "Synthetic ICD candidate 102 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.103",
+        "short_desc":  "Benchmark mock diagnosis 103",
+        "long_desc":  "Synthetic ICD candidate 103 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.104",
+        "short_desc":  "Benchmark mock diagnosis 104",
+        "long_desc":  "Synthetic ICD candidate 104 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.105",
+        "short_desc":  "Benchmark mock diagnosis 105",
+        "long_desc":  "Synthetic ICD candidate 105 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.106",
+        "short_desc":  "Benchmark mock diagnosis 106",
+        "long_desc":  "Synthetic ICD candidate 106 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.107",
+        "short_desc":  "Benchmark mock diagnosis 107",
+        "long_desc":  "Synthetic ICD candidate 107 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.108",
+        "short_desc":  "Benchmark mock diagnosis 108",
+        "long_desc":  "Synthetic ICD candidate 108 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.109",
+        "short_desc":  "Benchmark mock diagnosis 109",
+        "long_desc":  "Synthetic ICD candidate 109 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.110",
+        "short_desc":  "Benchmark mock diagnosis 110",
+        "long_desc":  "Synthetic ICD candidate 110 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.111",
+        "short_desc":  "Benchmark mock diagnosis 111",
+        "long_desc":  "Synthetic ICD candidate 111 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.112",
+        "short_desc":  "Benchmark mock diagnosis 112",
+        "long_desc":  "Synthetic ICD candidate 112 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.113",
+        "short_desc":  "Benchmark mock diagnosis 113",
+        "long_desc":  "Synthetic ICD candidate 113 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.114",
+        "short_desc":  "Benchmark mock diagnosis 114",
+        "long_desc":  "Synthetic ICD candidate 114 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.115",
+        "short_desc":  "Benchmark mock diagnosis 115",
+        "long_desc":  "Synthetic ICD candidate 115 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.116",
+        "short_desc":  "Benchmark mock diagnosis 116",
+        "long_desc":  "Synthetic ICD candidate 116 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.117",
+        "short_desc":  "Benchmark mock diagnosis 117",
+        "long_desc":  "Synthetic ICD candidate 117 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.118",
+        "short_desc":  "Benchmark mock diagnosis 118",
+        "long_desc":  "Synthetic ICD candidate 118 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.119",
+        "short_desc":  "Benchmark mock diagnosis 119",
+        "long_desc":  "Synthetic ICD candidate 119 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.120",
+        "short_desc":  "Benchmark mock diagnosis 120",
+        "long_desc":  "Synthetic ICD candidate 120 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.121",
+        "short_desc":  "Benchmark mock diagnosis 121",
+        "long_desc":  "Synthetic ICD candidate 121 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.122",
+        "short_desc":  "Benchmark mock diagnosis 122",
+        "long_desc":  "Synthetic ICD candidate 122 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.123",
+        "short_desc":  "Benchmark mock diagnosis 123",
+        "long_desc":  "Synthetic ICD candidate 123 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.124",
+        "short_desc":  "Benchmark mock diagnosis 124",
+        "long_desc":  "Synthetic ICD candidate 124 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.125",
+        "short_desc":  "Benchmark mock diagnosis 125",
+        "long_desc":  "Synthetic ICD candidate 125 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.126",
+        "short_desc":  "Benchmark mock diagnosis 126",
+        "long_desc":  "Synthetic ICD candidate 126 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.127",
+        "short_desc":  "Benchmark mock diagnosis 127",
+        "long_desc":  "Synthetic ICD candidate 127 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.128",
+        "short_desc":  "Benchmark mock diagnosis 128",
+        "long_desc":  "Synthetic ICD candidate 128 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.129",
+        "short_desc":  "Benchmark mock diagnosis 129",
+        "long_desc":  "Synthetic ICD candidate 129 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.130",
+        "short_desc":  "Benchmark mock diagnosis 130",
+        "long_desc":  "Synthetic ICD candidate 130 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.131",
+        "short_desc":  "Benchmark mock diagnosis 131",
+        "long_desc":  "Synthetic ICD candidate 131 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.132",
+        "short_desc":  "Benchmark mock diagnosis 132",
+        "long_desc":  "Synthetic ICD candidate 132 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.133",
+        "short_desc":  "Benchmark mock diagnosis 133",
+        "long_desc":  "Synthetic ICD candidate 133 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.134",
+        "short_desc":  "Benchmark mock diagnosis 134",
+        "long_desc":  "Synthetic ICD candidate 134 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.135",
+        "short_desc":  "Benchmark mock diagnosis 135",
+        "long_desc":  "Synthetic ICD candidate 135 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.136",
+        "short_desc":  "Benchmark mock diagnosis 136",
+        "long_desc":  "Synthetic ICD candidate 136 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.137",
+        "short_desc":  "Benchmark mock diagnosis 137",
+        "long_desc":  "Synthetic ICD candidate 137 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.138",
+        "short_desc":  "Benchmark mock diagnosis 138",
+        "long_desc":  "Synthetic ICD candidate 138 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.139",
+        "short_desc":  "Benchmark mock diagnosis 139",
+        "long_desc":  "Synthetic ICD candidate 139 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.140",
+        "short_desc":  "Benchmark mock diagnosis 140",
+        "long_desc":  "Synthetic ICD candidate 140 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.141",
+        "short_desc":  "Benchmark mock diagnosis 141",
+        "long_desc":  "Synthetic ICD candidate 141 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.142",
+        "short_desc":  "Benchmark mock diagnosis 142",
+        "long_desc":  "Synthetic ICD candidate 142 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.143",
+        "short_desc":  "Benchmark mock diagnosis 143",
+        "long_desc":  "Synthetic ICD candidate 143 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.144",
+        "short_desc":  "Benchmark mock diagnosis 144",
+        "long_desc":  "Synthetic ICD candidate 144 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.145",
+        "short_desc":  "Benchmark mock diagnosis 145",
+        "long_desc":  "Synthetic ICD candidate 145 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.146",
+        "short_desc":  "Benchmark mock diagnosis 146",
+        "long_desc":  "Synthetic ICD candidate 146 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.147",
+        "short_desc":  "Benchmark mock diagnosis 147",
+        "long_desc":  "Synthetic ICD candidate 147 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.148",
+        "short_desc":  "Benchmark mock diagnosis 148",
+        "long_desc":  "Synthetic ICD candidate 148 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.149",
+        "short_desc":  "Benchmark mock diagnosis 149",
+        "long_desc":  "Synthetic ICD candidate 149 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.150",
+        "short_desc":  "Benchmark mock diagnosis 150",
+        "long_desc":  "Synthetic ICD candidate 150 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.151",
+        "short_desc":  "Benchmark mock diagnosis 151",
+        "long_desc":  "Synthetic ICD candidate 151 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.152",
+        "short_desc":  "Benchmark mock diagnosis 152",
+        "long_desc":  "Synthetic ICD candidate 152 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.153",
+        "short_desc":  "Benchmark mock diagnosis 153",
+        "long_desc":  "Synthetic ICD candidate 153 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.154",
+        "short_desc":  "Benchmark mock diagnosis 154",
+        "long_desc":  "Synthetic ICD candidate 154 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.155",
+        "short_desc":  "Benchmark mock diagnosis 155",
+        "long_desc":  "Synthetic ICD candidate 155 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.156",
+        "short_desc":  "Benchmark mock diagnosis 156",
+        "long_desc":  "Synthetic ICD candidate 156 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.157",
+        "short_desc":  "Benchmark mock diagnosis 157",
+        "long_desc":  "Synthetic ICD candidate 157 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.158",
+        "short_desc":  "Benchmark mock diagnosis 158",
+        "long_desc":  "Synthetic ICD candidate 158 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.159",
+        "short_desc":  "Benchmark mock diagnosis 159",
+        "long_desc":  "Synthetic ICD candidate 159 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.160",
+        "short_desc":  "Benchmark mock diagnosis 160",
+        "long_desc":  "Synthetic ICD candidate 160 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.161",
+        "short_desc":  "Benchmark mock diagnosis 161",
+        "long_desc":  "Synthetic ICD candidate 161 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.162",
+        "short_desc":  "Benchmark mock diagnosis 162",
+        "long_desc":  "Synthetic ICD candidate 162 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.163",
+        "short_desc":  "Benchmark mock diagnosis 163",
+        "long_desc":  "Synthetic ICD candidate 163 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.164",
+        "short_desc":  "Benchmark mock diagnosis 164",
+        "long_desc":  "Synthetic ICD candidate 164 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.165",
+        "short_desc":  "Benchmark mock diagnosis 165",
+        "long_desc":  "Synthetic ICD candidate 165 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.166",
+        "short_desc":  "Benchmark mock diagnosis 166",
+        "long_desc":  "Synthetic ICD candidate 166 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.167",
+        "short_desc":  "Benchmark mock diagnosis 167",
+        "long_desc":  "Synthetic ICD candidate 167 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.168",
+        "short_desc":  "Benchmark mock diagnosis 168",
+        "long_desc":  "Synthetic ICD candidate 168 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.169",
+        "short_desc":  "Benchmark mock diagnosis 169",
+        "long_desc":  "Synthetic ICD candidate 169 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.170",
+        "short_desc":  "Benchmark mock diagnosis 170",
+        "long_desc":  "Synthetic ICD candidate 170 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.171",
+        "short_desc":  "Benchmark mock diagnosis 171",
+        "long_desc":  "Synthetic ICD candidate 171 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.172",
+        "short_desc":  "Benchmark mock diagnosis 172",
+        "long_desc":  "Synthetic ICD candidate 172 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.173",
+        "short_desc":  "Benchmark mock diagnosis 173",
+        "long_desc":  "Synthetic ICD candidate 173 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.174",
+        "short_desc":  "Benchmark mock diagnosis 174",
+        "long_desc":  "Synthetic ICD candidate 174 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.175",
+        "short_desc":  "Benchmark mock diagnosis 175",
+        "long_desc":  "Synthetic ICD candidate 175 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.176",
+        "short_desc":  "Benchmark mock diagnosis 176",
+        "long_desc":  "Synthetic ICD candidate 176 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.177",
+        "short_desc":  "Benchmark mock diagnosis 177",
+        "long_desc":  "Synthetic ICD candidate 177 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.178",
+        "short_desc":  "Benchmark mock diagnosis 178",
+        "long_desc":  "Synthetic ICD candidate 178 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.179",
+        "short_desc":  "Benchmark mock diagnosis 179",
+        "long_desc":  "Synthetic ICD candidate 179 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.180",
+        "short_desc":  "Benchmark mock diagnosis 180",
+        "long_desc":  "Synthetic ICD candidate 180 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.181",
+        "short_desc":  "Benchmark mock diagnosis 181",
+        "long_desc":  "Synthetic ICD candidate 181 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.182",
+        "short_desc":  "Benchmark mock diagnosis 182",
+        "long_desc":  "Synthetic ICD candidate 182 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.183",
+        "short_desc":  "Benchmark mock diagnosis 183",
+        "long_desc":  "Synthetic ICD candidate 183 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.184",
+        "short_desc":  "Benchmark mock diagnosis 184",
+        "long_desc":  "Synthetic ICD candidate 184 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.185",
+        "short_desc":  "Benchmark mock diagnosis 185",
+        "long_desc":  "Synthetic ICD candidate 185 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.186",
+        "short_desc":  "Benchmark mock diagnosis 186",
+        "long_desc":  "Synthetic ICD candidate 186 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.187",
+        "short_desc":  "Benchmark mock diagnosis 187",
+        "long_desc":  "Synthetic ICD candidate 187 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.188",
+        "short_desc":  "Benchmark mock diagnosis 188",
+        "long_desc":  "Synthetic ICD candidate 188 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.189",
+        "short_desc":  "Benchmark mock diagnosis 189",
+        "long_desc":  "Synthetic ICD candidate 189 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.190",
+        "short_desc":  "Benchmark mock diagnosis 190",
+        "long_desc":  "Synthetic ICD candidate 190 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.191",
+        "short_desc":  "Benchmark mock diagnosis 191",
+        "long_desc":  "Synthetic ICD candidate 191 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.192",
+        "short_desc":  "Benchmark mock diagnosis 192",
+        "long_desc":  "Synthetic ICD candidate 192 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.193",
+        "short_desc":  "Benchmark mock diagnosis 193",
+        "long_desc":  "Synthetic ICD candidate 193 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.194",
+        "short_desc":  "Benchmark mock diagnosis 194",
+        "long_desc":  "Synthetic ICD candidate 194 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.195",
+        "short_desc":  "Benchmark mock diagnosis 195",
+        "long_desc":  "Synthetic ICD candidate 195 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.196",
+        "short_desc":  "Benchmark mock diagnosis 196",
+        "long_desc":  "Synthetic ICD candidate 196 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.197",
+        "short_desc":  "Benchmark mock diagnosis 197",
+        "long_desc":  "Synthetic ICD candidate 197 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.198",
+        "short_desc":  "Benchmark mock diagnosis 198",
+        "long_desc":  "Synthetic ICD candidate 198 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.199",
+        "short_desc":  "Benchmark mock diagnosis 199",
+        "long_desc":  "Synthetic ICD candidate 199 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    },
+    {
+        "code":  "Z90.200",
+        "short_desc":  "Benchmark mock diagnosis 200",
+        "long_desc":  "Synthetic ICD candidate 200 included to provide a larger navigation bank for benchmark search and retrieval testing.",
+        "excludes":  "Excludes1: none"
+    }
 ]
