@@ -38,13 +38,14 @@ except Exception as e:  # pragma: no cover
     ) from e
 
 try:
+    from ..models import MedicalAction, MedicalObservation
+    from .rveda_environment import InvalidTaskIdError, RvedaEnvironment
+except ImportError:
     from models import MedicalAction, MedicalObservation
-    from .rveda_environment import RvedaEnvironment
-except ModuleNotFoundError:
-    from models import MedicalAction, MedicalObservation
-    from server.rveda_environment import RvedaEnvironment
+    from server.rveda_environment import InvalidTaskIdError, RvedaEnvironment
 
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 
@@ -84,6 +85,23 @@ class StepInfoMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(StepInfoMiddleware)
+
+
+@app.exception_handler(InvalidTaskIdError)
+async def invalid_task_id_handler(_request: Request, exc: InvalidTaskIdError):
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": [
+                {
+                    "type": "value_error.invalid_task_id",
+                    "loc": ["body", "task_id"],
+                    "msg": str(exc),
+                    "input": exc.task_id,
+                }
+            ]
+        },
+    )
 
 
 @app.get("/health")

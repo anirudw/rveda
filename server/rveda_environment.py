@@ -27,6 +27,14 @@ except ImportError:
     from server.engine import get_code_details, initialize_db, search_codes
 
 
+class InvalidTaskIdError(ValueError):
+    """Raised when reset is called with an unknown task identifier."""
+
+    def __init__(self, task_id: str):
+        super().__init__(f"Unknown task_id: {task_id}")
+        self.task_id = task_id
+
+
 class RvedaEnvironment(Environment):
     """
     A task-driven medical-coding environment.
@@ -299,8 +307,11 @@ class RvedaEnvironment(Environment):
             self._current_task = random.choice(self._tasks)
         else:
             self._current_task = next(
-                task for task in self._tasks if task["task_id"] == task_id
+                (task for task in self._tasks if task["task_id"] == task_id),
+                None,
             )
+            if self._current_task is None:
+                raise InvalidTaskIdError(task_id)
         self._patient_note = self._current_task["patient_note"]
         self._search_results = []
         self._detailed_info = ""
