@@ -1,0 +1,71 @@
+{
+  "task_id": "v2_easy_overweight_schema_v1",
+  "difficulty": "easy",
+  "target_code": "E66.3",
+  "claim_schema_version": "v1",
+  "ehr_modules": {
+    "encounter_note": {
+      "status": "closed",
+      "query_budget": 1,
+      "evidence": [
+        {
+          "evidence_id": "ev_encounter_bmi_001",
+          "text": "Routine checkup documents BMI 27 with diet and exercise counseling for weight management.",
+          "supports_codes": ["E66.3"]
+        }
+      ]
+    }
+  },
+  "target_evidence": ["ev_encounter_bmi_001"],
+  "policy_rules": {
+    "version": "payer_policy_v1",
+    "active_schema_version": "v1",
+    "rules": [
+      {
+        "rule_id": "policy_v1_evidence_required",
+        "description": "A submitted diagnosis claim must cite at least one revealed evidence snippet."
+      }
+    ],
+    "claim_schema": {
+      "version": "v1",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id"
+      ]
+    }
+  },
+  "drift": {
+    "enabled": false,
+    "trigger_step": null,
+    "from_schema_version": "v1",
+    "to_schema_version": null
+  },
+  "verification_checkpoints": [
+    {
+      "checkpoint": "ehr_query",
+      "assertion": "QUERY_EHR(module='encounter_note') reveals ev_encounter_bmi_001 and updates ehr_map.encounter_note.status."
+    },
+    {
+      "checkpoint": "icd_search",
+      "assertion": "SEARCH_ICD with an overweight or BMI query returns E66.3 in search_results."
+    },
+    {
+      "checkpoint": "policy_check",
+      "assertion": "CHECK_POLICY reveals payer_policy_v1 and active_schema_version v1."
+    },
+    {
+      "checkpoint": "schema_validation",
+      "assertion": "VALIDATE_CLAIM_SCHEMA accepts a draft claim containing diagnosis_code, schema_version, evidence_ids, and reasoning_log_id."
+    },
+    {
+      "checkpoint": "reasoning_log",
+      "assertion": "REASONING_LOG cites ev_encounter_bmi_001 for candidate_code E66.3."
+    },
+    {
+      "checkpoint": "submit_claim",
+      "assertion": "SUBMIT_CLAIM with diagnosis_code E66.3, schema_version v1, and evidence ev_encounter_bmi_001 receives exact-code terminal credit."
+    }
+  ]
+}
