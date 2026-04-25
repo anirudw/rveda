@@ -12,8 +12,10 @@ coding workflow in the OpenEnv environment.
 """
 
 from enum import Enum
+from typing import Any
 
 from openenv.core.env_server.types import Action, Observation
+
 from pydantic import BaseModel, Field
 
 
@@ -23,6 +25,7 @@ class MedicalActionType(str, Enum):
     SEARCH = "SEARCH"
     DETAILS = "DETAILS"
     SUBMIT = "SUBMIT"
+    QUERY_EHR = "QUERY_EHR"
 
 
 class MedicalAction(Action):
@@ -32,6 +35,10 @@ class MedicalAction(Action):
         ..., description="Type of medical workflow action to perform"
     )
     query: str = Field(..., description="Search term, code, or submission payload")
+    module: str | None = Field(
+        default=None,
+        description="EHR module key for QUERY_EHR actions",
+    )
 
 
 class SearchResult(BaseModel):
@@ -39,6 +46,38 @@ class SearchResult(BaseModel):
 
     code: str = Field(..., description="Medical code identifier")
     short_desc: str = Field(..., description="Short description for the code")
+
+
+class EvidenceSnippet(BaseModel):
+    """Evidence snippet revealed from a hidden EHR module."""
+
+    evidence_id: str = Field(..., description="Stable evidence identifier")
+    module: str = Field(..., description="Source EHR module")
+    text: str = Field(..., description="Evidence text or structured value")
+    supports_codes: list[str] = Field(
+        default_factory=list,
+        description="ICD codes supported by this evidence",
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional evidence fields preserved from the task fixture",
+    )
+
+
+class EhrModuleState(BaseModel):
+    """Visible status for a hidden EHR module."""
+
+    status: str = Field(default="closed", description="closed, open, or exhausted")
+    query_budget_remaining: int = Field(
+        default=0,
+        ge=0,
+        description="Remaining query budget for the module",
+    )
+    revealed_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of snippets revealed from the module",
+    )
 
 
 class GradingTrace(BaseModel):
@@ -89,4 +128,20 @@ class MedicalObservation(Observation):
     grading: GradingTrace = Field(
         default_factory=GradingTrace,
         description="Explicit grading trace and episode trajectory signals",
+    )
+    ehr_map: dict[str, EhrModuleState] = Field(
+        default_factory=dict,
+        description="Visible map of EHR module statuses",
+    )
+    revealed_evidence: list[EvidenceSnippet] = Field(
+        default_factory=list,
+        description="Evidence snippets revealed by QUERY_EHR",
+    )
+    last_error: str | None = Field(
+        default=None,
+        description="Machine-readable error category from the previous step",
+    )
+    invalid_reason: str | None = Field(
+        default=None,
+        description="Human-readable reason the previous action was invalid",
     )

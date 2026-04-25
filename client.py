@@ -61,10 +61,13 @@ class RvedaEnv(
         Returns:
             Dictionary representation suitable for JSON encoding
         """
-        return {
+        payload = {
             "action_type": action.action_type.value,
             "query": action.query,
         }
+        if action.module is not None:
+            payload["module"] = action.module
+        return payload
 
     def _parse_result(self, payload: Dict) -> StepResult[MedicalObservation]:
         """
@@ -83,6 +86,10 @@ class RvedaEnv(
             detailed_info=obs_data.get("detailed_info", ""),
             current_reward=obs_data.get("current_reward", 0.0),
             grading=obs_data.get("grading", {}),
+            ehr_map=obs_data.get("ehr_map", {}),
+            revealed_evidence=obs_data.get("revealed_evidence", []),
+            last_error=obs_data.get("last_error"),
+            invalid_reason=obs_data.get("invalid_reason"),
             done=payload.get("done", False),
             reward=payload.get("reward"),
             metadata=obs_data.get("metadata", {}),

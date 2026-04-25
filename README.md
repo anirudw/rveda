@@ -26,6 +26,16 @@ Although the included baseline is a single-agent loop, the environment is struct
 - Active Round 2 development Space: `https://huggingface.co/spaces/anirudw/rveda-rcm-arena`
 - Archived Round 1 baseline Space: `https://huggingface.co/spaces/anirudw/rveda`
 - This repository currently contains the active OpenEnv migration work and the frozen V2 contract artifacts, but the live runtime is still mostly the Round 1 medical-coding environment while Fog-of-War, policy drift, and structured claim mechanics are implemented.
+## Round 2 Status
+
+Rveda V2 is planned as **Revenue Cycle Drift Arena**, a Round 2 professional-task environment for partially observable revenue-cycle workflows.
+
+- Round 2 Space target: [`anirudw/rveda-rcm-arena`](https://huggingface.co/spaces/anirudw/rveda-rcm-arena)
+- Round 1 archived baseline: [`anirudw/rveda`](https://huggingface.co/spaces/anirudw/rveda)
+- V2 contract: [`docs/rveda-v2-contract.md`](docs/rveda-v2-contract.md)
+- Minimal V2 task example: [`examples/v2_task_minimal.json`](examples/v2_task_minimal.json)
+
+The default runtime remains the Round 1 medical-coding environment. The repository now includes a minimal Task 1.3 EHR Fog-of-War slice behind the explicit task ID `v2_easy_overweight_schema_v1`: hidden EHR modules, `QUERY_EHR`, `ehr_map`, revealed evidence, and query-budget error surfaces are implemented. Later V2 mechanics such as policy/schema drift, reasoning-log verification, and structured claim submission remain unimplemented.
 
 ## Why Rveda
 
@@ -60,9 +70,10 @@ The action space is deliberately small and tool-like:
 
 - `SEARCH(query)`: query the local ICD-10 index for candidate codes.
 - `DETAILS(code)`: retrieve long-form code details and exclusion notes.
+- `QUERY_EHR(module, query)`: reveal evidence from one hidden EHR module in the minimal Task 1.3 V2 slice.
 - `SUBMIT(code)`: finalize the coding decision and end the episode.
 
-This setup mimics the operational logic of medical coding review: retrieve, inspect, then commit.
+This setup mimics the operational logic of medical coding review: reveal hidden evidence when needed, retrieve candidates, inspect details, then commit.
 
 ## Architecture
 
@@ -108,7 +119,7 @@ At runtime it:
 2. Creates an OpenAI-compatible client using `HF_TOKEN` (or `API_KEY`), `API_BASE_URL`, and `MODEL_NAME`.
 3. Launches the environment with `RvedaEnv.from_docker_image(IMAGE_NAME)`.
 4. Resets into an episode and builds a prompt from the current patient note, search results, detailed info, and recent action history.
-5. Asks the model to emit strict JSON with one of three actions: `SEARCH`, `DETAILS`, or `SUBMIT`.
+5. Asks the model to emit strict JSON with one of four actions: `SEARCH`, `DETAILS`, `QUERY_EHR`, or `SUBMIT`.
 6. Executes the action in the environment, logs `[START]`, `[STEP]`, and `[END]` lines, and repeats until termination.
 
 The loop is intentionally benchmark-friendly: it is deterministic in structure, OpenAI-client compliant, and emits normalized episode scores for consistent downstream evaluation.
@@ -267,6 +278,8 @@ During execution, `inference.py` prints benchmark-compatible logs in the form:
 - `tasks.json`: benchmark task suite
 - `icd10_mock.json`: mock ICD-10 source data
 - `data/icd10.db`: generated SQLite database used at runtime
+- `docs/rveda-v2-contract.md`: frozen V2 Task 0.1 schema and verifiability contract
+- `examples/v2_task_minimal.json`: minimal V2 curriculum slice example
 
 ## Scope and Limitations
 
