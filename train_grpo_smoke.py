@@ -955,9 +955,10 @@ def load_model_stack(model_name: str, *, enable_unsloth_fast_rl: bool):
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
-    compute_dtype = (
-        torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.float16
-    )
+    # Keep the plain TRL fallback conservative and stable on Colab T4.
+    # Mixed precision is faster, but the current TRL/PEFT/Qwen stack can surface
+    # Float vs BFloat16 mismatches during generation inside GRPOTrainer.
+    compute_dtype = torch.float32
     quantization_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_compute_dtype=compute_dtype,
@@ -1128,8 +1129,8 @@ def run_grpo_smoke_train(args: argparse.Namespace, output_dir: Path) -> dict[str
         num_generations=2,
         max_completion_length=args.max_new_tokens,
         gradient_checkpointing=False,
-        bf16=torch.cuda.is_available() and torch.cuda.is_bf16_supported(),
-        fp16=torch.cuda.is_available() and not torch.cuda.is_bf16_supported(),
+        bf16=enable_unsloth_fast_rl and torch.cuda.is_available() and torch.cuda.is_bf16_supported(),
+        fp16=enable_unsloth_fast_rl and torch.cuda.is_available() and not torch.cuda.is_bf16_supported(),
         use_cpu=not torch.cuda.is_available(),
     )
 
