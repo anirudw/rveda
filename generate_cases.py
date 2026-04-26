@@ -570,7 +570,12 @@ def _build_current_runtime_path(
     code_index: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     ehr_queries = []
+    ehr_queries_by_module: dict[str, str] = {}
+    target_modules: list[str] = []
     for evidence_spec in target_evidence_specs:
+        module_name = str(evidence_spec.get("module", "")).strip()
+        if module_name and module_name not in target_modules:
+            target_modules.append(module_name)
         text = str(evidence_spec.get("text", ""))
         words = [word.strip(".,;:()").lower() for word in text.split()]
         useful_words = [
@@ -579,9 +584,14 @@ def _build_current_runtime_path(
             if len(word) >= 4 and word not in {"with", "from", "that", "this", "patient"}
         ]
         if useful_words:
-            ehr_queries.append(" ".join(useful_words[:2]))
+            query = " ".join(useful_words[:2])
+            ehr_queries.append(query)
+            if module_name:
+                ehr_queries_by_module[module_name] = query
     if not ehr_queries:
         ehr_queries = list(search_terms[:1]) or [target_code]
+    if target_module not in target_modules:
+        target_modules.insert(0, target_module)
 
     code_row = code_index.get(target_code, {})
     search_queries = [
@@ -601,8 +611,9 @@ def _build_current_runtime_path(
             "REASONING_LOG",
             "SUBMIT",
         ],
-        "recommended_ehr_modules": [target_module],
+        "recommended_ehr_modules": target_modules,
         "recommended_ehr_queries": ehr_queries,
+        "recommended_ehr_queries_by_module": ehr_queries_by_module,
         "recommended_search_queries": search_queries,
         "expected_details_code": target_code,
         "expected_submit_code": target_code,
