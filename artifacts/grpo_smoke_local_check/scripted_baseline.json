@@ -1,0 +1,275 @@
+{
+  "policy": "scripted_baseline",
+  "task_ids": [
+    "easy_endo_1"
+  ],
+  "episodes": [
+    {
+      "task_id": "easy_endo_1",
+      "done": true,
+      "total_reward": 0.87,
+      "steps": [
+        {
+          "action": null,
+          "reward": 0.0,
+          "done": false,
+          "info": {
+            "episode_id": "25242409-acb4-47e3-b2a7-4f80f67ff7c5",
+            "step_count": 0,
+            "task_id": "",
+            "last_error": null,
+            "invalid_reason": null,
+            "metadata": {}
+          },
+          "observation": {
+            "done": false,
+            "reward": 0.0,
+            "metadata": {},
+            "patient_note": "Patient presents for routine checkup. Vitals normal. BMI is 27. Patient is advised on diet and exercise to manage their weight.",
+            "search_results": [],
+            "detailed_info": "",
+            "current_reward": 0.0,
+            "grading": {
+              "action_type": "",
+              "grader": "",
+              "difficulty": "",
+              "step": 0,
+              "task_id": "",
+              "reward": 0.0,
+              "reward_components": {},
+              "search_history": [],
+              "code_history": [],
+              "last_search_codes": [],
+              "excludes1_conflict_seen": false
+            },
+            "ehr_map": {},
+            "revealed_evidence": [],
+            "last_error": null,
+            "invalid_reason": null
+          }
+        },
+        {
+          "action": {
+            "action_type": "SEARCH",
+            "query": "weight",
+            "module": null
+          },
+          "reward": 0.07,
+          "done": false,
+          "info": {
+            "episode_id": "25242409-acb4-47e3-b2a7-4f80f67ff7c5",
+            "step_count": 1,
+            "task_id": "easy_endo_1",
+            "last_error": null,
+            "invalid_reason": null,
+            "metadata": {
+              "query": "weight",
+              "module": null,
+              "step": 1,
+              "excludes1_penalty": false,
+              "timed_out": false
+            }
+          },
+          "observation": {
+            "done": false,
+            "reward": 0.07,
+            "metadata": {
+              "query": "weight",
+              "module": null,
+              "step": 1,
+              "excludes1_penalty": false,
+              "timed_out": false
+            },
+            "patient_note": "Patient presents for routine checkup. Vitals normal. BMI is 27. Patient is advised on diet and exercise to manage their weight.",
+            "search_results": [
+              {
+                "code": "E66.3",
+                "short_desc": "Overweight"
+              }
+            ],
+            "detailed_info": "Search returned 1 candidate(s)",
+            "current_reward": 0.07,
+            "grading": {
+              "action_type": "SEARCH",
+              "grader": "easy_grader",
+              "difficulty": "easy",
+              "step": 1,
+              "task_id": "easy_endo_1",
+              "reward": 0.07,
+              "reward_components": {
+                "base": 0.0,
+                "query_repeated": 0.0,
+                "result_repeated": 0.0,
+                "query_novelty_bonus": 0.01,
+                "result_count_bonus": 0.01,
+                "result_count": 1.0,
+                "final": 0.07
+              },
+              "search_history": [
+                "weight"
+              ],
+              "code_history": [],
+              "last_search_codes": [
+                "E66.3"
+              ],
+              "excludes1_conflict_seen": false
+            },
+            "ehr_map": {},
+            "revealed_evidence": [],
+            "last_error": null,
+            "invalid_reason": null
+          }
+        },
+        {
+          "action": {
+            "action_type": "DETAILS",
+            "query": "E66.3",
+            "module": null
+          },
+          "reward": 0.04,
+          "done": false,
+          "info": {
+            "episode_id": "25242409-acb4-47e3-b2a7-4f80f67ff7c5",
+            "step_count": 2,
+            "task_id": "easy_endo_1",
+            "last_error": null,
+            "invalid_reason": null,
+            "metadata": {
+              "query": "E66.3",
+              "module": null,
+              "step": 2,
+              "excludes1_penalty": false,
+              "timed_out": false
+            }
+          },
+          "observation": {
+            "done": false,
+            "reward": 0.04,
+            "metadata": {
+              "query": "E66.3",
+              "module": null,
+              "step": 2,
+              "excludes1_penalty": false,
+              "timed_out": false
+            },
+            "patient_note": "Patient presents for routine checkup. Vitals normal. BMI is 27. Patient is advised on diet and exercise to manage their weight.",
+            "search_results": [
+              {
+                "code": "E66.3",
+                "short_desc": "Overweight"
+              }
+            ],
+            "detailed_info": "Overweight, BMI 25.0 to 29.9.\nExcludes: Excludes1: Morbid obesity (E66.01)",
+            "current_reward": 0.04,
+            "grading": {
+              "action_type": "DETAILS",
+              "grader": "easy_grader",
+              "difficulty": "easy",
+              "step": 2,
+              "task_id": "easy_endo_1",
+              "reward": 0.04,
+              "reward_components": {
+                "base": 0.0,
+                "detail_novel": 1.0,
+                "detail_found_bonus": 0.01,
+                "search_alignment_bonus": 0.02,
+                "conflict_penalty": 0.0,
+                "final": 0.04
+              },
+              "search_history": [
+                "weight"
+              ],
+              "code_history": [
+                "E66.3"
+              ],
+              "last_search_codes": [
+                "E66.3"
+              ],
+              "excludes1_conflict_seen": false
+            },
+            "ehr_map": {},
+            "revealed_evidence": [],
+            "last_error": null,
+            "invalid_reason": null
+          }
+        },
+        {
+          "action": {
+            "action_type": "SUBMIT",
+            "query": "E66.3",
+            "module": null
+          },
+          "reward": 0.76,
+          "done": true,
+          "info": {
+            "episode_id": "25242409-acb4-47e3-b2a7-4f80f67ff7c5",
+            "step_count": 3,
+            "task_id": "easy_endo_1",
+            "last_error": null,
+            "invalid_reason": null,
+            "metadata": {
+              "query": "E66.3",
+              "module": null,
+              "step": 3,
+              "excludes1_penalty": false,
+              "timed_out": false
+            }
+          },
+          "observation": {
+            "done": true,
+            "reward": 0.76,
+            "metadata": {
+              "query": "E66.3",
+              "module": null,
+              "step": 3,
+              "excludes1_penalty": false,
+              "timed_out": false
+            },
+            "patient_note": "Patient presents for routine checkup. Vitals normal. BMI is 27. Patient is advised on diet and exercise to manage their weight.",
+            "search_results": [
+              {
+                "code": "E66.3",
+                "short_desc": "Overweight"
+              }
+            ],
+            "detailed_info": "Submitted coding decision for query: E66.3",
+            "current_reward": 0.76,
+            "grading": {
+              "action_type": "SUBMIT",
+              "grader": "easy_grader",
+              "difficulty": "easy",
+              "step": 3,
+              "task_id": "easy_endo_1",
+              "reward": 0.76,
+              "reward_components": {
+                "base": 0.72,
+                "search_hit": 1.0,
+                "search_hit_bonus": 0.02,
+                "search_history_bonus": 0.01,
+                "code_history_bonus": 0.01,
+                "depth_bonus": 0.0,
+                "conflict_penalty": 0.0,
+                "final": 0.76
+              },
+              "search_history": [
+                "weight"
+              ],
+              "code_history": [
+                "E66.3"
+              ],
+              "last_search_codes": [
+                "E66.3"
+              ],
+              "excludes1_conflict_seen": false
+            },
+            "ehr_map": {},
+            "revealed_evidence": [],
+            "last_error": null,
+            "invalid_reason": null
+          }
+        }
+      ]
+    }
+  ],
+  "mean_total_reward": 0.87
+}

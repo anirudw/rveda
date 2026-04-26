@@ -141,7 +141,8 @@ class RvedaEnvironment(Environment):
         initialize_db()
         self._state = State(episode_id=str(uuid4()), step_count=0)
         self._tasks = self._load_tasks()
-        self._v2_example_tasks = self._load_v2_example_tasks()
+        self._v2_tasks = self._load_v2_tasks()
+        self._all_tasks = [*self._tasks, *self._v2_tasks]
         self._current_task: dict[str, Any] | None = None
         self._patient_note = ""
         self._search_results: list[SearchResult] = []
@@ -163,6 +164,7 @@ class RvedaEnvironment(Environment):
         self._policy_engine = PolicyEngine()
         self._reward_engine = RewardEngine()
         self._reward_metrics: RewardMetrics | None = None
+        self._episode_done = False
 
     def _grade_bounds(self, score: float) -> float:
         """Clamp score into the supported reward range."""
@@ -338,11 +340,8 @@ class RvedaEnvironment(Environment):
             excludes1_conflict_seen=self._excludes1_conflict_seen,
         )
 
-    def _v2_example_tasks_path(self) -> Path:
-        return Path(__file__).resolve().parent.parent / "examples" / "v2_task_minimal.json"
-
-    def _generated_v2_tasks_path(self) -> Path:
-        return Path(__file__).resolve().parent.parent / "examples" / "v2_tasks_synthetic.json"
+    def _v2_tasks_dir(self) -> Path:
+        return Path(__file__).resolve().parent.parent / "examples"
 
     def _load_tasks(self) -> list[dict[str, Any]]:
         tasks_path = Path(__file__).resolve().parent.parent / "tasks.json"
@@ -350,18 +349,31 @@ class RvedaEnvironment(Environment):
             tasks = json.load(fh)
         return tasks
 
-    def _load_v2_example_tasks(self) -> list[dict[str, Any]]:
-        loaded_tasks: list[dict[str, Any]] = []
-        for task_path in (self._v2_example_tasks_path(), self._generated_v2_tasks_path()):
-            if not task_path.exists():
+    def _load_v2_tasks(self) -> list[dict[str, Any]]:
+        tasks: list[dict[str, Any]] = []
+        v2_tasks_dir = self._v2_tasks_dir()
+        if not v2_tasks_dir.exists():
+            return tasks
+
+        seen_task_ids: set[str] = set()
+        for task_path in sorted(v2_tasks_dir.glob("v2_task*.json")):
+            try:
+                with task_path.open("r", encoding="utf-8") as fh:
+                    raw_payload = json.load(fh)
+            except (OSError, ValueError):
                 continue
-            with task_path.open("r", encoding="utf-8") as fh:
-                raw_payload = json.load(fh)
-            if isinstance(raw_payload, list):
-                loaded_tasks.extend(raw_payload)
-            else:
-                loaded_tasks.append(raw_payload)
-        return loaded_tasks
+
+            candidate_tasks = raw_payload if isinstance(raw_payload, list) else [raw_payload]
+            for payload in candidate_tasks:
+                if not isinstance(payload, dict):
+                    continue
+                task_id = payload.get("task_id")
+                if not isinstance(task_id, str) or not task_id or task_id in seen_task_ids:
+                    continue
+                seen_task_ids.add(task_id)
+                tasks.append(payload)
+
+        return tasks
 
     def _reset_ehr_state(self) -> None:
         self._ehr_modules = self._current_task.get("ehr_modules", {}) if self._current_task else {}
@@ -439,6 +451,35 @@ class RvedaEnvironment(Environment):
             reward_metrics=self._reward_metrics or RewardMetrics(),
             last_error=self._last_error,
             invalid_reason=self._invalid_reason,
+            metadata=metadata or {},
+        )
+
+    def _invalid_observation(
+        self,
+        *,
+        action_type: str,
+        error: str,
+        reason: str,
+        done: bool,
+        metadata: dict[str, Any] | None = None,
+    ) -> MedicalObservation:
+        self._last_error = error
+        self._invalid_reason = reason
+        self._detailed_info = reason
+        grading = self._build_grading_trace(
+            action_type=action_type,
+            grader_used=self._grader_name(),
+            reward=0.0,
+            reward_components={
+                "base": 0.0,
+                "invalid_action": 1.0,
+                "final": 0.0,
+            },
+        )
+        return self._observation(
+            reward=0.0,
+            done=done,
+            grading=grading,
             metadata=metadata or {},
         )
 
@@ -656,14 +697,15 @@ class RvedaEnvironment(Environment):
             episode_id=episode_id if episode_id is not None else str(uuid4()),
             step_count=0,
         )
+        selectable_tasks = self._all_tasks if self._all_tasks else self._tasks
         if task_id is None:
             task_selector = random if seed is None else random.Random(seed)
-            self._current_task = task_selector.choice(self._tasks)
+            self._current_task = task_selector.choice(selectable_tasks)
         else:
             self._current_task = next(
                 (
                     task
-                    for task in [*self._tasks, *self._v2_example_tasks]
+                    for task in selectable_tasks
                     if task["task_id"] == task_id
                 ),
                 None,
@@ -683,6 +725,7 @@ class RvedaEnvironment(Environment):
         self._policy_engine.reset(self._current_task)
         self._reward_engine.reset(self._current_task)
         self._reward_metrics = None
+        self._episode_done = False
 
         return self._observation(reward=0.0, done=False)
 
@@ -702,6 +745,20 @@ class RvedaEnvironment(Environment):
         Returns:
             MedicalObservation with search results, details, or submission status
         """
+        if self._episode_done:
+            return self._invalid_observation(
+                action_type=action.action_type.value,
+                error="terminal_misuse",
+                reason="Episode already ended. Call reset() before taking another step.",
+                done=True,
+                metadata={
+                    "query": action.query,
+                    "module": action.module,
+                    "step": self._state.step_count,
+                    "timed_out": False,
+                },
+            )
+
         self._state.step_count += 1
         previous_schema_version = self._policy_engine.active_schema_version
         self._policy_engine.maybe_trigger_drift(self._state.step_count)
@@ -717,6 +774,19 @@ class RvedaEnvironment(Environment):
         self._invalid_reason = None
 
         if action.action_type == MedicalActionType.SEARCH:
+            if not action.query.strip():
+                return self._invalid_observation(
+                    action_type=action.action_type.value,
+                    error="invalid_action",
+                    reason="SEARCH requires a non-empty query.",
+                    done=False,
+                    metadata={
+                        "query": action.query,
+                        "module": action.module,
+                        "step": self._state.step_count,
+                        "timed_out": False,
+                    },
+                )
             self.search_history.append(action.query)
             self._search_results = [SearchResult(**result) for result in search_codes(action.query)]
             self._last_search_codes = {result.code for result in self._search_results}
@@ -731,6 +801,19 @@ class RvedaEnvironment(Environment):
                 self._search_result_history.add(tuple(sorted(self._last_search_codes)))
             self._detailed_info = f"Search returned {len(self._search_results)} candidate(s)"
         elif action.action_type == MedicalActionType.DETAILS:
+            if not action.query.strip():
+                return self._invalid_observation(
+                    action_type=action.action_type.value,
+                    error="invalid_action",
+                    reason="DETAILS requires a non-empty code query.",
+                    done=False,
+                    metadata={
+                        "query": action.query,
+                        "module": action.module,
+                        "step": self._state.step_count,
+                        "timed_out": False,
+                    },
+                )
             details = get_code_details(action.query)
             if details:
                 excludes = details.get("excludes", "")
@@ -749,8 +832,41 @@ class RvedaEnvironment(Environment):
                     f"{details['long_desc']}\nExcludes: {excludes}"
                 )
             else:
-                self._detailed_info = ""
+                self._last_error = "unknown_code"
+                self._invalid_reason = f"Unknown code: {action.query}"
+                self._detailed_info = self._invalid_reason
+                reward_components = {
+                    "base": 0.0,
+                    "unknown_code": 1.0,
+                    "final": 0.0,
+                }
         elif action.action_type == MedicalActionType.SUBMIT:
+            if not action.query.strip():
+                return self._invalid_observation(
+                    action_type=action.action_type.value,
+                    error="invalid_action",
+                    reason="SUBMIT requires a non-empty code query.",
+                    done=False,
+                    metadata={
+                        "query": action.query,
+                        "module": action.module,
+                        "step": self._state.step_count,
+                        "timed_out": False,
+                    },
+                )
+            if not get_code_details(action.query):
+                return self._invalid_observation(
+                    action_type=action.action_type.value,
+                    error="unknown_code",
+                    reason=f"Unknown code: {action.query}",
+                    done=False,
+                    metadata={
+                        "query": action.query,
+                        "module": action.module,
+                        "step": self._state.step_count,
+                        "timed_out": False,
+                    },
+                )
             if self._requires_reasoning_log():
                 if self._reasoning_log is None or not self._reasoning_log_verified:
                     self._last_error = "missing_reasoning_log"
@@ -810,20 +926,36 @@ class RvedaEnvironment(Environment):
                 self._last_validated_schema_version = None
         elif action.action_type == MedicalActionType.REASONING_LOG:
             reward, reward_components = self._submit_reasoning_log(action.payload)
+        else:
+            return self._invalid_observation(
+                action_type=str(action.action_type),
+                error="invalid_action",
+                reason=f"Unsupported action type: {action.action_type}",
+                done=False,
+                metadata={
+                    "query": action.query,
+                    "module": action.module,
+                    "step": self._state.step_count,
+                    "timed_out": False,
+                },
+            )
 
         timed_out = self._state.step_count >= self._MAX_EPISODE_STEPS and action.action_type != MedicalActionType.SUBMIT
         if timed_out:
             reward = 0.0
+            self._last_error = "timeout"
+            self._invalid_reason = "Episode ended without a final SUBMIT decision."
             reward_components = {
                 **reward_components,
                 "timeout_penalty": 1.0,
                 "final": reward,
             }
             done = True
-            self._detailed_info = "Episode ended without a final SUBMIT decision."
+            self._detailed_info = self._invalid_reason
         elif self._state.step_count >= self._MAX_EPISODE_STEPS:
             done = True
 
+        self._episode_done = done
         evaluation = self._reward_engine.evaluate(
             action_type=action.action_type.value,
             base_reward=reward,

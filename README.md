@@ -21,6 +21,11 @@ The repository is intentionally lightweight: the current build uses a local SQLi
 
 Although the included baseline is a single-agent loop, the environment is structured for broader multi-agent experimentation, such as retriever-coder-auditor pipelines, while preserving a standardized evaluation interface.
 
+## Deployment Status
+
+- Active Round 2 development Space: `https://huggingface.co/spaces/anirudw/rveda-rcm-arena`
+- Archived Round 1 baseline Space: `https://huggingface.co/spaces/anirudw/rveda`
+- This repository currently contains the active OpenEnv migration work and the frozen V2 contract artifacts, but the live runtime is still mostly the Round 1 medical-coding environment while Fog-of-War, policy drift, and structured claim mechanics are implemented.
 ## Round 2 Status
 
 Rveda V2 is planned as **Revenue Cycle Drift Arena**, a Round 2 professional-task environment for partially observable revenue-cycle workflows.

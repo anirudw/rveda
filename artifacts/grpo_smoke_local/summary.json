@@ -1,0 +1,10 @@
+{
+  "mode": "baseline_only",
+  "task_ids": [
+    "easy_endo_1"
+  ],
+  "baseline_mean_total_reward": 0.87,
+  "saved_files": [
+    "scripted_baseline.json"
+  ]
+}
