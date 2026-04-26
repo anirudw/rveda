@@ -25,7 +25,7 @@ In real revenue-cycle workflows, one-shot coding is unsafe; the agent has to rev
 - `Training Notebook:` [`train_generated_v2_grpo_launcher.ipynb`](https://colab.research.google.com/github/anirudw/rveda/blob/main/train_generated_v2_grpo_launcher.ipynb)
 - `Training Script:` [`train_grpo_smoke.py`](train_grpo_smoke.py)
 - `Reward/Loss Plots:` [Training Evidence](#training-evidence)
-- `Blog:` [`BLOG.md`](BLOG.md)
+- `Blog:` [`Blog.MD`](Blog.MD)
 - `Round 1 Baseline:` [`anirudw/rveda`](https://huggingface.co/spaces/anirudw/rveda)
 
 ## Why RVEDA RCM ARENA Matters
@@ -71,7 +71,7 @@ The current judge-facing training path is intentionally small-model first so it 
 - Generated V2 Colab launcher: [`train_generated_v2_grpo_launcher.ipynb`](train_generated_v2_grpo_launcher.ipynb)
 - Smoke Colab launcher: [`train_grpo_smoke_launcher.ipynb`](train_grpo_smoke_launcher.ipynb)
 - Training runner: [`train_grpo_smoke.py`](train_grpo_smoke.py)
-- Technical blog: [`BLOG.md`](BLOG.md)
+- Technical blog: [`Blog.MD`](Blog.MD)
 
 Current setup:
 
