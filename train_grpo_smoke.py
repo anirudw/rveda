@@ -355,11 +355,17 @@ def evaluate_model_policy(
             results.append(serialize_rollout(task_id, trace))
 
     mean_reward = sum(item["total_reward"] for item in results) / max(len(results), 1)
+    nonzero_reward_rate = sum(1 for item in results if item["total_reward"] != 0) / max(len(results), 1)
     return {
         "policy": label,
         "task_ids": task_ids,
         "episodes": results,
         "mean_total_reward": mean_reward,
+        "rollout_summary": {
+            "episode_count": len(results),
+            "nonzero_reward_rate": nonzero_reward_rate,
+            "mean_total_reward": mean_reward,
+        },
     }
 
 
