@@ -253,6 +253,14 @@ def _claim_payload(observation, runtime_path: Any, *, include_reasoning_log: boo
     return payload
 
 
+def _first_query(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list) and value:
+        return str(value[0])
+    return ""
+
+
 def default_action_for_observation(observation, task_id: str) -> dict[str, Any]:
     runtime_path = observation.metadata.get("current_runtime_path")
     target_modules = (
@@ -265,17 +273,25 @@ def default_action_for_observation(observation, task_id: str) -> dict[str, Any]:
             if target_modules and module_name not in target_modules:
                 continue
             if module_state.query_budget_remaining > 0 and module_state.revealed_count == 0:
-                ehr_queries = (
-                    runtime_path.get("recommended_ehr_queries", [])
+                ehr_queries_by_module = (
+                    runtime_path.get("recommended_ehr_queries_by_module", {})
                     if isinstance(runtime_path, dict)
+                    else {}
+                )
+                ehr_queries = (
+                    ehr_queries_by_module.get(module_name, [])
+                    if isinstance(ehr_queries_by_module, dict)
                     else []
                 )
+                if not ehr_queries and isinstance(runtime_path, dict):
+                    ehr_queries = runtime_path.get("recommended_ehr_queries", [])
+                query = _first_query(ehr_queries)
                 return {
                     "action_type": "QUERY_EHR",
                     "module": module_name,
                     "query": (
-                        str(ehr_queries[0])
-                        if ehr_queries
+                        query
+                        if query
                         else SAFE_EHR_QUERY_BY_TASK.get(task_id, "BMI weight")
                     ),
                 }
