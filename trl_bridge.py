@@ -22,10 +22,10 @@ from typing import Any, Callable
 from openenv.core.env_server.types import State
 
 try:
-    from .models import MedicalAction, MedicalObservation
+    from .models import ClaimDraftPayload, MedicalAction, MedicalObservation, ReasoningLogPayload
     from .server.rveda_environment import RvedaEnvironment
 except ImportError:
-    from models import MedicalAction, MedicalObservation
+    from models import ClaimDraftPayload, MedicalAction, MedicalObservation, ReasoningLogPayload
     from server.rveda_environment import RvedaEnvironment
 
 
@@ -308,13 +308,20 @@ class RvedaTrainingBridge:
             return action
         if not isinstance(action, dict):
             raise TypeError("Action must be a MedicalAction or a dict.")
+        action_type = str(action.get("action_type", "")).strip().upper()
+        payload = action.get("payload")
+        if isinstance(payload, dict):
+            if action_type == "VALIDATE_CLAIM_SCHEMA":
+                payload = ClaimDraftPayload.model_validate(payload)
+            elif action_type == "REASONING_LOG":
+                payload = ReasoningLogPayload.model_validate(payload)
         return MedicalAction(
-            action_type=str(action.get("action_type", "")).strip().upper(),
+            action_type=action_type,
             query=str(action.get("query", "")),
             module=(
                 str(action["module"]).strip()
                 if action.get("module") is not None
                 else None
             ),
-            payload=action.get("payload"),
+            payload=payload,
         )
