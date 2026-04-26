@@ -34,10 +34,19 @@ QWEN25_14B_MODEL = "Qwen/Qwen2.5-14B-Instruct"
 DEFAULT_OUTPUT_DIR = "artifacts/grpo_smoke"
 QWEN25_14B_OUTPUT_DIR = "artifacts/grpo_smoke_qwen25_14b"
 DEFAULT_TASK_IDS = ["easy_endo_1"]
-ACTION_TYPES = {"SEARCH", "DETAILS", "SUBMIT", "QUERY_EHR"}
+ACTION_TYPES = {
+    "SEARCH",
+    "DETAILS",
+    "SUBMIT",
+    "QUERY_EHR",
+    "CHECK_POLICY",
+    "VALIDATE_CLAIM_SCHEMA",
+    "REASONING_LOG",
+}
 ACTION_INSTRUCTION = (
-    "Return exactly one JSON object with keys action_type, query, and optional "
-    "module. Valid action_type values are SEARCH, DETAILS, SUBMIT, QUERY_EHR. "
+    "Return exactly one JSON object with keys action_type, query, optional "
+    "module, and optional payload. Valid action_type values are SEARCH, DETAILS, "
+    "SUBMIT, QUERY_EHR, CHECK_POLICY, VALIDATE_CLAIM_SCHEMA, REASONING_LOG. "
     "Do not add markdown."
 )
 SAFE_SEARCH_BY_TASK = {
@@ -196,6 +205,54 @@ def extract_json_object(text: str) -> dict[str, Any] | None:
     return payload if isinstance(payload, dict) else None
 
 
+def _latest_revealed_evidence_ids(observation) -> list[str]:
+    return [snippet.evidence_id for snippet in observation.revealed_evidence]
+
+
+def _target_code_from_runtime(runtime_path: Any) -> str:
+    if not isinstance(runtime_path, dict):
+        return ""
+    return str(
+        runtime_path.get("expected_submit_code")
+        or runtime_path.get("expected_details_code")
+        or ""
+    ).strip()
+
+
+def _schema_version_from_observation(observation) -> str:
+    policy_state = getattr(observation, "policy_state", None)
+    active_schema = getattr(policy_state, "active_schema_version", "")
+    if active_schema:
+        return str(active_schema)
+    runtime_path = observation.metadata.get("current_runtime_path")
+    if isinstance(runtime_path, dict):
+        schema_version = runtime_path.get("expected_schema_version")
+        if schema_version:
+            return str(schema_version)
+    return "v1"
+
+
+def _claim_payload(observation, runtime_path: Any, *, include_reasoning_log: bool) -> dict[str, Any]:
+    target_code = _target_code_from_runtime(runtime_path)
+    evidence_ids = _latest_revealed_evidence_ids(observation)
+    schema_version = _schema_version_from_observation(observation)
+    payload: dict[str, Any] = {
+        "diagnosis_code": target_code,
+        "schema_version": schema_version,
+        "evidence_ids": evidence_ids,
+    }
+    if include_reasoning_log:
+        reasoning_log = getattr(observation, "reasoning_log", None)
+        reasoning_log_id = getattr(reasoning_log, "reasoning_log_id", None)
+        payload["reasoning_log_id"] = reasoning_log_id or "rl_pending"
+    policy_state = getattr(observation, "policy_state", None)
+    claim_schema = getattr(policy_state, "claim_schema", None)
+    required_fields = set(getattr(claim_schema, "required_fields", []) or [])
+    if "policy_attestations" in required_fields:
+        payload["policy_attestations"] = ["policy_attestation_required"]
+    return payload
+
+
 def default_action_for_observation(observation, task_id: str) -> dict[str, Any]:
     runtime_path = observation.metadata.get("current_runtime_path")
     target_modules = (
@@ -229,9 +286,41 @@ def default_action_for_observation(observation, task_id: str) -> dict[str, Any]:
                 "action_type": "DETAILS",
                 "query": observation.search_results[0].code,
             }
+        target_code = _target_code_from_runtime(runtime_path)
+        if target_code:
+            policy_state = getattr(observation, "policy_state", None)
+            policy_checked = bool(getattr(policy_state, "checked", False))
+            if not policy_checked:
+                return {"action_type": "CHECK_POLICY", "query": ""}
+            if not getattr(observation, "reasoning_log_verified", False):
+                return {
+                    "action_type": "REASONING_LOG",
+                    "query": "",
+                    "payload": {
+                        "candidate_code": target_code,
+                        "rationale": "Synthetic smoke policy cites revealed evidence and ICD detail.",
+                        "evidence_ids": _latest_revealed_evidence_ids(observation),
+                        "policy_rule_ids": ["policy_evidence_required"],
+                    },
+                }
+            validation_just_passed = (
+                observation.grading.action_type == "VALIDATE_CLAIM_SCHEMA"
+                and observation.last_error is None
+                and observation.invalid_reason is None
+            )
+            if not validation_just_passed:
+                return {
+                    "action_type": "VALIDATE_CLAIM_SCHEMA",
+                    "query": "",
+                    "payload": _claim_payload(
+                        observation,
+                        runtime_path,
+                        include_reasoning_log=True,
+                    ),
+                }
         return {
             "action_type": "SUBMIT",
-            "query": observation.search_results[0].code,
+            "query": target_code or observation.search_results[0].code,
         }
 
     search_queries = (
@@ -253,9 +342,12 @@ def coerce_action_dict(raw_action: dict[str, Any], observation, task_id: str) ->
     action_type = str(raw_action.get("action_type", "")).strip().upper()
     query = str(raw_action.get("query", "")).strip()
     module = raw_action.get("module")
+    payload = raw_action.get("payload")
     module_text = str(module).strip() if module is not None else None
 
-    if action_type not in ACTION_TYPES or not query:
+    if action_type not in ACTION_TYPES:
+        return default_action_for_observation(observation, task_id), True
+    if action_type in {"SEARCH", "DETAILS", "SUBMIT", "QUERY_EHR"} and not query:
         return default_action_for_observation(observation, task_id), True
     if action_type == "QUERY_EHR" and not module_text:
         return default_action_for_observation(observation, task_id), True
@@ -266,6 +358,8 @@ def coerce_action_dict(raw_action: dict[str, Any], observation, task_id: str) ->
     }
     if module_text is not None:
         action["module"] = module_text
+    if isinstance(payload, dict):
+        action["payload"] = payload
     return action, False
 
 

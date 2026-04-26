@@ -299,6 +299,7 @@ class RvedaTrainingBridge:
             "action_type": action.action_type.value,
             "query": action.query,
             "module": action.module,
+            "payload": action.payload.model_dump() if action.payload is not None else None,
         }
 
     @staticmethod
@@ -315,4 +316,5 @@ class RvedaTrainingBridge:
                 if action.get("module") is not None
                 else None
             ),
+            payload=action.get("payload"),
         )
