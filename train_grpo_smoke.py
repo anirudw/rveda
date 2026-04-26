@@ -12,6 +12,7 @@ Local environment-only smoke:
 Colab / GPU smoke training:
     pip install torch datasets accelerate trl unsloth
     python train_grpo_smoke.py --model-name Qwen/Qwen2.5-7B-Instruct
+    python train_grpo_smoke.py --smoke-model qwen2.5-14b --task-ids v2_easy_overweight_schema_v1 --samples-per-task 1 --episodes 1 --train-steps 1 --max-episode-steps 1 --max-new-tokens 32
 """
 
 from __future__ import annotations
@@ -19,13 +20,19 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from collections.abc import Sequence
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from trl_bridge import BridgeStep, RolloutTrace, RvedaTrainingBridge
 
 
+QWEN25_7B_MODEL = "Qwen/Qwen2.5-7B-Instruct"
+QWEN25_14B_MODEL = "Qwen/Qwen2.5-14B-Instruct"
+DEFAULT_OUTPUT_DIR = "artifacts/grpo_smoke"
+QWEN25_14B_OUTPUT_DIR = "artifacts/grpo_smoke_qwen25_14b"
 DEFAULT_TASK_IDS = ["easy_endo_1"]
 ACTION_TYPES = {"SEARCH", "DETAILS", "SUBMIT", "QUERY_EHR"}
 ACTION_INSTRUCTION = (
@@ -46,8 +53,13 @@ SAFE_EHR_QUERY_BY_TASK = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Minimal live GRPO smoke runner for Rveda.")
-    parser.add_argument("--output-dir", default="artifacts/grpo_smoke", help="Directory for JSON outputs.")
-    parser.add_argument("--model-name", default="Qwen/Qwen2.5-7B-Instruct", help="Base model for smoke GRPO.")
+    parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR, help="Directory for JSON outputs.")
+    parser.add_argument("--model-name", default=QWEN25_7B_MODEL, help="Base model for smoke GRPO.")
+    parser.add_argument(
+        "--smoke-model",
+        choices=["qwen2.5-7b", "qwen2.5-14b"],
+        help="Named smoke preset. The 14B preset writes to a dedicated artifact folder unless --output-dir is set.",
+    )
     parser.add_argument("--task-ids", nargs="+", default=DEFAULT_TASK_IDS, help="Task ids used for smoke train/eval.")
     parser.add_argument("--samples-per-task", type=int, default=4, help="Number of prompt rows per task.")
     parser.add_argument("--episodes", type=int, default=1, help="Evaluation episodes per task.")
@@ -55,12 +67,87 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--train-steps", type=int, default=2, help="Max GRPO optimization steps.")
     parser.add_argument("--max-new-tokens", type=int, default=96, help="Generation cap for action JSON.")
     parser.add_argument("--skip-train", action="store_true", help="Only run the live env baseline smoke.")
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.smoke_model == "qwen2.5-7b":
+        args.model_name = QWEN25_7B_MODEL
+    elif args.smoke_model == "qwen2.5-14b":
+        args.model_name = QWEN25_14B_MODEL
+        if args.output_dir == DEFAULT_OUTPUT_DIR:
+            args.output_dir = QWEN25_14B_OUTPUT_DIR
+    return args
 
 
 def save_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+
+
+def build_command_metadata(args: argparse.Namespace, output_dir: Path) -> dict[str, Any]:
+    return {
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "argv": [sys.executable, *sys.argv],
+        "model_name": args.model_name,
+        "smoke_model": args.smoke_model,
+        "output_dir": str(output_dir),
+        "task_ids": args.task_ids,
+        "samples_per_task": args.samples_per_task,
+        "episodes": args.episodes,
+        "max_episode_steps": args.max_episode_steps,
+        "train_steps": args.train_steps,
+        "max_new_tokens": args.max_new_tokens,
+        "skip_train": args.skip_train,
+        "expected_artifacts": [
+            "command_metadata.json",
+            "scripted_baseline.json",
+            "train_rows_preview.json",
+            "baseline_model_eval.json",
+            "post_train_model_eval.json",
+            "summary.json",
+        ],
+    }
+
+
+def save_failure_status(output_dir: Path, exc: Exception) -> None:
+    save_json(
+        output_dir / "run_status.json",
+        {
+            "status": "failed",
+            "error_type": type(exc).__name__,
+            "error": str(exc),
+            "note": "This records a failed smoke attempt; it is not GRPO training proof.",
+        },
+    )
+
+
+def save_failed_attempt_summary(
+    output_dir: Path,
+    args: argparse.Namespace,
+    baseline: dict[str, Any],
+    exc: Exception,
+) -> None:
+    save_json(
+        output_dir / "summary.json",
+        {
+            "mode": "attempt_failed",
+            "model_name": args.model_name,
+            "smoke_model": args.smoke_model,
+            "task_ids": args.task_ids,
+            "baseline_mean_total_reward": baseline["mean_total_reward"],
+            "baseline_rollout_summary": baseline["rollout_summary"],
+            "error_type": type(exc).__name__,
+            "error": str(exc),
+            "saved_files": [
+                "command_metadata.json",
+                "scripted_baseline.json",
+                "run_status.json",
+            ],
+            "missing_artifacts": [
+                "train_rows_preview.json",
+                "baseline_model_eval.json",
+                "post_train_model_eval.json",
+            ],
+        },
+    )
 
 
 def build_prompt(prompt: str) -> str:
@@ -437,6 +524,7 @@ def run_grpo_smoke_train(args: argparse.Namespace, output_dir: Path) -> dict[str
 
     summary = {
         "model_name": args.model_name,
+        "smoke_model": args.smoke_model,
         "task_ids": args.task_ids,
         "train_rows": len(train_rows),
         "train_steps": args.train_steps,
@@ -455,6 +543,7 @@ def main() -> None:
     args = parse_args()
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    save_json(output_dir / "command_metadata.json", build_command_metadata(args, output_dir))
 
     baseline = evaluate_scripted_policy(
         task_ids=args.task_ids,
@@ -468,16 +557,23 @@ def main() -> None:
             output_dir / "summary.json",
             {
                 "mode": "baseline_only",
+                "model_name": args.model_name,
+                "smoke_model": args.smoke_model,
                 "task_ids": args.task_ids,
                 "baseline_mean_total_reward": baseline["mean_total_reward"],
                 "baseline_rollout_summary": baseline["rollout_summary"],
-                "saved_files": ["scripted_baseline.json"],
+                "saved_files": ["command_metadata.json", "scripted_baseline.json"],
             },
         )
         print(f"Saved baseline smoke artifacts to {output_dir}")
         return
 
-    summary = run_grpo_smoke_train(args, output_dir)
+    try:
+        summary = run_grpo_smoke_train(args, output_dir)
+    except Exception as exc:
+        save_failure_status(output_dir, exc)
+        save_failed_attempt_summary(output_dir, args, baseline, exc)
+        raise
     print(json.dumps(summary, indent=2))
 
 

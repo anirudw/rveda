@@ -1,0 +1,26 @@
+{
+  "mode": "attempt_failed",
+  "model_name": "Qwen/Qwen2.5-14B-Instruct",
+  "smoke_model": "qwen2.5-14b",
+  "task_ids": [
+    "v2_easy_overweight_schema_v1"
+  ],
+  "baseline_mean_total_reward": 0.1,
+  "baseline_rollout_summary": {
+    "episode_count": 1,
+    "nonzero_reward_rate": 1.0,
+    "mean_total_reward": 0.1
+  },
+  "error_type": "RuntimeError",
+  "error": "Optional training stack is missing. Install torch, datasets, accelerate, trl, and unsloth.",
+  "saved_files": [
+    "command_metadata.json",
+    "scripted_baseline.json",
+    "run_status.json"
+  ],
+  "missing_artifacts": [
+    "train_rows_preview.json",
+    "baseline_model_eval.json",
+    "post_train_model_eval.json"
+  ]
+}

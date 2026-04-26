@@ -1,0 +1,41 @@
+{
+  "created_at_utc": "2026-04-26T02:26:36.360328+00:00",
+  "argv": [
+    "/usr/bin/python3",
+    "train_grpo_smoke.py",
+    "--smoke-model",
+    "qwen2.5-14b",
+    "--task-ids",
+    "v2_easy_overweight_schema_v1",
+    "--samples-per-task",
+    "1",
+    "--episodes",
+    "1",
+    "--train-steps",
+    "1",
+    "--max-episode-steps",
+    "2",
+    "--max-new-tokens",
+    "32"
+  ],
+  "model_name": "Qwen/Qwen2.5-14B-Instruct",
+  "smoke_model": "qwen2.5-14b",
+  "output_dir": "artifacts/grpo_smoke_qwen25_14b",
+  "task_ids": [
+    "v2_easy_overweight_schema_v1"
+  ],
+  "samples_per_task": 1,
+  "episodes": 1,
+  "max_episode_steps": 2,
+  "train_steps": 1,
+  "max_new_tokens": 32,
+  "skip_train": false,
+  "expected_artifacts": [
+    "command_metadata.json",
+    "scripted_baseline.json",
+    "train_rows_preview.json",
+    "baseline_model_eval.json",
+    "post_train_model_eval.json",
+    "summary.json"
+  ]
+}
