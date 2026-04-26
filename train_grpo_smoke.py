@@ -854,20 +854,23 @@ def require_training_stack(*, use_unsloth_fast_rl: bool = True):
     try:
         import torch  # noqa: F401
         from datasets import Dataset  # noqa: F401
-        from unsloth import FastLanguageModel  # noqa: F401
-
         if use_unsloth_fast_rl:
+            from unsloth import FastLanguageModel  # noqa: F401
             from unsloth import PatchFastRL  # noqa: F401
 
             PatchFastRL(FastLanguageModel)
+        else:
+            import bitsandbytes  # noqa: F401
+            from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training  # noqa: F401
+            from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig  # noqa: F401
         from trl import GRPOConfig, GRPOTrainer  # noqa: F401
     except Exception as exc:  # pragma: no cover - exercised only when optional deps are missing
         raise RuntimeError(
-            "Optional training stack is missing. Install torch, datasets, accelerate, trl, and unsloth."
+            "Optional training stack is missing. Install torch, datasets, accelerate, trl, unsloth, peft, and bitsandbytes."
         ) from exc
 
 
-def load_model_stack(model_name: str):
+def load_unsloth_model_stack(model_name: str):
     import torch
     from unsloth import FastLanguageModel
 
@@ -903,6 +906,62 @@ def load_model_stack(model_name: str):
         loftq_config=None,
     )
     return model, tokenizer
+
+
+def load_hf_peft_model_stack(model_name: str):
+    import torch
+    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+    from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+
+    if not torch.cuda.is_available():
+        raise RuntimeError(
+            "GRPO smoke training requires CUDA. Use --skip-train for the local baseline smoke."
+        )
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    quantization_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=(
+            torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+        ),
+    )
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        quantization_config=quantization_config,
+        device_map="auto",
+        torch_dtype=torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16,
+    )
+    model.config.use_cache = False
+    model = prepare_model_for_kbit_training(model)
+    lora_config = LoraConfig(
+        r=16,
+        lora_alpha=16,
+        lora_dropout=0.0,
+        bias="none",
+        task_type="CAUSAL_LM",
+        target_modules=[
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "gate_proj",
+            "up_proj",
+            "down_proj",
+        ],
+    )
+    model = get_peft_model(model, lora_config)
+    return model, tokenizer
+
+
+def load_model_stack(model_name: str, *, use_unsloth: bool = True):
+    if use_unsloth:
+        return load_unsloth_model_stack(model_name)
+    return load_hf_peft_model_stack(model_name)
 
 
 def generate_action_text(model, tokenizer, prompt: str, max_new_tokens: int) -> str:
@@ -969,21 +1028,15 @@ def run_grpo_smoke_train(args: argparse.Namespace, output_dir: Path) -> dict[str
     use_unsloth_fast_rl = not args.disable_unsloth_fast_rl
     require_training_stack(use_unsloth_fast_rl=use_unsloth_fast_rl)
 
-    import torch
     from datasets import Dataset
-    from unsloth import FastLanguageModel
     from trl import GRPOConfig, GRPOTrainer
-
-    if use_unsloth_fast_rl:
-        from unsloth import PatchFastRL
-
-        PatchFastRL(FastLanguageModel)
+    import torch
 
     train_rows = build_train_rows(args.task_ids, args.samples_per_task)
     save_json(output_dir / "train_rows_preview.json", train_rows[: min(4, len(train_rows))])
     train_dataset = Dataset.from_list(train_rows)
 
-    model, tokenizer = load_model_stack(args.model_name)
+    model, tokenizer = load_model_stack(args.model_name, use_unsloth=use_unsloth_fast_rl)
 
     baseline_eval = evaluate_model_policy(
         model,
