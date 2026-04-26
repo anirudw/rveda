@@ -28,9 +28,14 @@ try:
         MedicalAction,
         MedicalActionType,
         MedicalObservation,
+        ReasoningLog,
+        ReasoningLogPayload,
+        RewardMetrics,
         SearchResult,
     )
     from .engine import get_code_details, initialize_db, search_codes
+    from .policy_engine import PolicyEngine
+    from .reward_engine import RewardEngine
 except ImportError:
     from models import (
         EhrModuleState,
@@ -39,9 +44,14 @@ except ImportError:
         MedicalAction,
         MedicalActionType,
         MedicalObservation,
+        ReasoningLog,
+        ReasoningLogPayload,
+        RewardMetrics,
         SearchResult,
     )
     from server.engine import get_code_details, initialize_db, search_codes
+    from server.policy_engine import PolicyEngine
+    from server.reward_engine import RewardEngine
 
 
 class InvalidTaskIdError(ValueError):
@@ -146,6 +156,13 @@ class RvedaEnvironment(Environment):
         self._revealed_evidence: dict[str, EvidenceSnippet] = {}
         self._last_error: str | None = None
         self._invalid_reason: str | None = None
+        self._reasoning_log: ReasoningLog | None = None
+        self._reasoning_log_verified = False
+        self._schema_validation_passed = False
+        self._last_validated_schema_version: str | None = None
+        self._policy_engine = PolicyEngine()
+        self._reward_engine = RewardEngine()
+        self._reward_metrics: RewardMetrics | None = None
 
     def _grade_bounds(self, score: float) -> float:
         """Clamp score into the supported reward range."""
@@ -324,6 +341,9 @@ class RvedaEnvironment(Environment):
     def _v2_example_tasks_path(self) -> Path:
         return Path(__file__).resolve().parent.parent / "examples" / "v2_task_minimal.json"
 
+    def _generated_v2_tasks_path(self) -> Path:
+        return Path(__file__).resolve().parent.parent / "examples" / "v2_tasks_synthetic.json"
+
     def _load_tasks(self) -> list[dict[str, Any]]:
         tasks_path = Path(__file__).resolve().parent.parent / "tasks.json"
         with tasks_path.open("r", encoding="utf-8") as fh:
@@ -331,11 +351,17 @@ class RvedaEnvironment(Environment):
         return tasks
 
     def _load_v2_example_tasks(self) -> list[dict[str, Any]]:
-        v2_example_path = self._v2_example_tasks_path()
-        if v2_example_path.exists():
-            with v2_example_path.open("r", encoding="utf-8") as fh:
-                return [json.load(fh)]
-        return []
+        loaded_tasks: list[dict[str, Any]] = []
+        for task_path in (self._v2_example_tasks_path(), self._generated_v2_tasks_path()):
+            if not task_path.exists():
+                continue
+            with task_path.open("r", encoding="utf-8") as fh:
+                raw_payload = json.load(fh)
+            if isinstance(raw_payload, list):
+                loaded_tasks.extend(raw_payload)
+            else:
+                loaded_tasks.append(raw_payload)
+        return loaded_tasks
 
     def _reset_ehr_state(self) -> None:
         self._ehr_modules = self._current_task.get("ehr_modules", {}) if self._current_task else {}
@@ -346,6 +372,12 @@ class RvedaEnvironment(Environment):
         self._revealed_evidence = {}
         self._last_error = None
         self._invalid_reason = None
+
+    def _reset_reasoning_state(self) -> None:
+        self._reasoning_log = None
+        self._reasoning_log_verified = False
+        self._schema_validation_passed = False
+        self._last_validated_schema_version = None
 
     def _ehr_map(self) -> dict[str, EhrModuleState]:
         ehr_map: dict[str, EhrModuleState] = {}
@@ -367,6 +399,21 @@ class RvedaEnvironment(Environment):
             )
         return ehr_map
 
+    def _requires_reasoning_log(self) -> bool:
+        if not self._current_task:
+            return False
+        claim_schema = (
+            self._current_task.get("policy_rules", {}).get("claim_schema", {})
+            if isinstance(self._current_task.get("policy_rules", {}), dict)
+            else {}
+        )
+        required_fields = {
+            str(field_name).strip()
+            for field_name in claim_schema.get("required_fields", [])
+            if str(field_name).strip()
+        }
+        return "reasoning_log_id" in required_fields or bool(self._current_task.get("target_evidence"))
+
     def _observation(
         self,
         *,
@@ -385,6 +432,11 @@ class RvedaEnvironment(Environment):
             grading=grading or GradingTrace(),
             ehr_map=self._ehr_map(),
             revealed_evidence=list(self._revealed_evidence.values()),
+            policy_state=self._policy_engine.policy_state(),
+            drift_notice=self._policy_engine.drift_notice,
+            reasoning_log=self._reasoning_log,
+            reasoning_log_verified=self._reasoning_log_verified,
+            reward_metrics=self._reward_metrics or RewardMetrics(),
             last_error=self._last_error,
             invalid_reason=self._invalid_reason,
             metadata=metadata or {},
@@ -459,6 +511,129 @@ class RvedaEnvironment(Environment):
             "final": reward,
         }
 
+    def verify_reasoning_log(
+        self,
+        payload: ReasoningLogPayload | None,
+    ) -> tuple[bool, ReasoningLog | None, str | None, str | None]:
+        if payload is None:
+            return False, None, "missing_reasoning_payload", "REASONING_LOG requires a structured payload."
+
+        candidate_code = payload.candidate_code.strip()
+        if not candidate_code:
+            return False, None, "missing_candidate_code", "REASONING_LOG requires a candidate_code."
+
+        rationale = payload.rationale.strip()
+        if not rationale:
+            return False, None, "missing_rationale", "REASONING_LOG requires a rationale."
+
+        evidence_ids = [item.strip() for item in payload.evidence_ids if item.strip()]
+        if not evidence_ids:
+            return False, None, "missing_evidence_ids", "REASONING_LOG requires at least one evidence id."
+
+        unknown_evidence_ids = [
+            evidence_id for evidence_id in evidence_ids if evidence_id not in self._revealed_evidence
+        ]
+        if unknown_evidence_ids:
+            return (
+                False,
+                None,
+                "unknown_evidence_ids",
+                "REASONING_LOG cites evidence that has not been revealed: "
+                + ", ".join(unknown_evidence_ids),
+            )
+
+        supporting_evidence_ids = [
+            evidence_id
+            for evidence_id in evidence_ids
+            if candidate_code in self._revealed_evidence[evidence_id].supports_codes
+        ]
+        if not supporting_evidence_ids:
+            return (
+                False,
+                None,
+                "ungrounded_candidate_code",
+                f"REASONING_LOG evidence does not support candidate code: {candidate_code}",
+            )
+
+        target_evidence = {
+            str(item)
+            for item in self._current_task.get("target_evidence", [])
+            if str(item).strip()
+        } if self._current_task else set()
+        if target_evidence and candidate_code == self._target_code():
+            cited_evidence = set(evidence_ids)
+            missing_target_evidence = sorted(target_evidence - cited_evidence)
+            if missing_target_evidence:
+                return (
+                    False,
+                    None,
+                    "missing_target_evidence",
+                    "REASONING_LOG is missing required target evidence: "
+                    + ", ".join(missing_target_evidence),
+                )
+
+        visible_policy_rules = {rule.rule_id for rule in self._policy_engine.policy_state().rules}
+        unknown_policy_rule_ids = [
+            rule_id for rule_id in payload.policy_rule_ids if rule_id not in visible_policy_rules
+        ]
+        if unknown_policy_rule_ids:
+            return (
+                False,
+                None,
+                "unknown_policy_rule_ids",
+                "REASONING_LOG cites policy rules that are not visible: "
+                + ", ".join(unknown_policy_rule_ids),
+            )
+
+        reasoning_log = ReasoningLog(
+            reasoning_log_id=f"rl_{self._state.episode_id}_{self._state.step_count + 1}",
+            candidate_code=candidate_code,
+            rationale=rationale,
+            evidence_ids=evidence_ids,
+            policy_rule_ids=[item.strip() for item in payload.policy_rule_ids if item.strip()],
+            verified=True,
+        )
+        return True, reasoning_log, None, None
+
+    def _submit_reasoning_log(self, payload: ReasoningLogPayload | None) -> tuple[float, dict[str, float]]:
+        verified, reasoning_log, last_error, invalid_reason = self.verify_reasoning_log(payload)
+
+        fallback_payload = payload or ReasoningLogPayload()
+        attempted_reasoning_log = reasoning_log or ReasoningLog(
+            reasoning_log_id=f"rl_{self._state.episode_id}_{self._state.step_count}",
+            candidate_code=fallback_payload.candidate_code.strip(),
+            rationale=fallback_payload.rationale.strip(),
+            evidence_ids=[item.strip() for item in fallback_payload.evidence_ids if item.strip()],
+            policy_rule_ids=[item.strip() for item in fallback_payload.policy_rule_ids if item.strip()],
+            verified=False,
+        )
+
+        self._reasoning_log = attempted_reasoning_log
+        self._reasoning_log_verified = verified
+        self._last_error = last_error
+        self._invalid_reason = invalid_reason
+
+        if not verified:
+            self._detailed_info = invalid_reason or "REASONING_LOG verification failed."
+            return 0.0, {
+                "base": 0.0,
+                "reasoning_verified": 0.0,
+                "invalid_action": 1.0 if last_error == "missing_reasoning_payload" else 0.0,
+                "final": 0.0,
+            }
+
+        self._detailed_info = (
+            f"REASONING_LOG accepted {attempted_reasoning_log.reasoning_log_id} "
+            f"for candidate code {attempted_reasoning_log.candidate_code}."
+        )
+        reward = 0.04
+        return reward, {
+            "base": 0.0,
+            "reasoning_verified": 1.0,
+            "evidence_count": float(len(attempted_reasoning_log.evidence_ids)),
+            "final": reward,
+        }
+
     def reset(
         self,
         seed: int | None = None,
@@ -504,6 +679,10 @@ class RvedaEnvironment(Environment):
         self._last_search_codes = set()
         self._excludes1_conflict_seen = False
         self._reset_ehr_state()
+        self._reset_reasoning_state()
+        self._policy_engine.reset(self._current_task)
+        self._reward_engine.reset(self._current_task)
+        self._reward_metrics = None
 
         return self._observation(reward=0.0, done=False)
 
@@ -524,6 +703,10 @@ class RvedaEnvironment(Environment):
             MedicalObservation with search results, details, or submission status
         """
         self._state.step_count += 1
+        previous_schema_version = self._policy_engine.active_schema_version
+        self._policy_engine.maybe_trigger_drift(self._state.step_count)
+        if previous_schema_version != self._policy_engine.active_schema_version:
+            self._schema_validation_passed = False
 
         reward = 0.0
         done = False
@@ -568,12 +751,65 @@ class RvedaEnvironment(Environment):
             else:
                 self._detailed_info = ""
         elif action.action_type == MedicalActionType.SUBMIT:
-            target_code = self._target_code()
-            reward, grader_used, reward_components = self._grade_submission(action.query, target_code)
-            self._detailed_info = f"Submitted coding decision for query: {action.query}"
-            done = True
+            if self._requires_reasoning_log():
+                if self._reasoning_log is None or not self._reasoning_log_verified:
+                    self._last_error = "missing_reasoning_log"
+                    self._invalid_reason = (
+                        "SUBMIT requires a verified REASONING_LOG before final submission."
+                    )
+                    self._detailed_info = self._invalid_reason
+                    reward = 0.0
+                    reward_components = {
+                        "base": 0.0,
+                        "missing_reasoning_log": 1.0,
+                        "final": 0.0,
+                    }
+                elif self._reasoning_log.candidate_code != action.query:
+                    self._last_error = "reasoning_log_candidate_mismatch"
+                    self._invalid_reason = (
+                        "Verified REASONING_LOG candidate does not match submitted code: "
+                        f"{self._reasoning_log.candidate_code} != {action.query}"
+                    )
+                    self._detailed_info = self._invalid_reason
+                    reward = 0.0
+                    reward_components = {
+                        "base": 0.0,
+                        "reasoning_log_candidate_mismatch": 1.0,
+                        "final": 0.0,
+                    }
+                else:
+                    target_code = self._target_code()
+                    reward, grader_used, reward_components = self._grade_submission(action.query, target_code)
+                    self._detailed_info = f"Submitted coding decision for query: {action.query}"
+                    done = True
+            else:
+                target_code = self._target_code()
+                reward, grader_used, reward_components = self._grade_submission(action.query, target_code)
+                self._detailed_info = f"Submitted coding decision for query: {action.query}"
+                done = True
         elif action.action_type == MedicalActionType.QUERY_EHR:
             reward, reward_components = self._query_ehr(action.module, action.query)
+        elif action.action_type == MedicalActionType.CHECK_POLICY:
+            result = self._policy_engine.check_policy()
+            reward = result.reward
+            reward_components = result.reward_components
+            self._detailed_info = result.detailed_info
+            self._last_error = result.last_error
+            self._invalid_reason = result.invalid_reason
+        elif action.action_type == MedicalActionType.VALIDATE_CLAIM_SCHEMA:
+            result = self._policy_engine.validate_claim(action.payload, self._revealed_evidence)
+            reward = result.reward
+            reward_components = result.reward_components
+            self._detailed_info = result.detailed_info
+            self._last_error = result.last_error
+            self._invalid_reason = result.invalid_reason
+            self._schema_validation_passed = result.last_error is None and reward > 0.0
+            if action.payload is not None:
+                self._last_validated_schema_version = action.payload.schema_version.strip() or None
+            else:
+                self._last_validated_schema_version = None
+        elif action.action_type == MedicalActionType.REASONING_LOG:
+            reward, reward_components = self._submit_reasoning_log(action.payload)
 
         timed_out = self._state.step_count >= self._MAX_EPISODE_STEPS and action.action_type != MedicalActionType.SUBMIT
         if timed_out:
@@ -587,6 +823,32 @@ class RvedaEnvironment(Environment):
             self._detailed_info = "Episode ended without a final SUBMIT decision."
         elif self._state.step_count >= self._MAX_EPISODE_STEPS:
             done = True
+
+        evaluation = self._reward_engine.evaluate(
+            action_type=action.action_type.value,
+            base_reward=reward,
+            reward_components=reward_components,
+            step_count=self._state.step_count,
+            search_history=self.search_history,
+            code_history=self.code_history,
+            last_error=self._last_error,
+            invalid_reason=self._invalid_reason,
+            reasoning_log=self._reasoning_log,
+            reasoning_log_verified=self._reasoning_log_verified,
+            schema_validation_passed=self._schema_validation_passed,
+            validated_schema_version=self._last_validated_schema_version,
+            drift_notice=self._policy_engine.drift_notice,
+            policy_engine=self._policy_engine,
+            timed_out=timed_out,
+        )
+        reward = evaluation.reward
+        self._reward_metrics = evaluation.reward_metrics
+        if action.action_type == MedicalActionType.SUBMIT and self._last_error in {
+            "missing_reasoning_log",
+            "reasoning_log_candidate_mismatch",
+        }:
+            reward = 0.0
+            self._reward_metrics.final = 0.0
 
         grading = self._build_grading_trace(
             action_type=action.action_type.value,

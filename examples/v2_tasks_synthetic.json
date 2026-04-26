@@ -1,0 +1,3711 @@
+[
+  {
+    "task_id": "v2_train_easy_hypothyroid_unspecified_v1_001",
+    "split": "train",
+    "split_tags": {
+      "split": "train",
+      "difficulty": "easy",
+      "drift_profile": "no_drift",
+      "schema_version": "v1"
+    },
+    "difficulty": "easy",
+    "patient_note": "Primary care visit for chronic fatigue; specific autoimmune confirmation is absent unless the agent over-reads distractors.",
+    "target_code": "E03.9",
+    "claim_schema_version": "v1",
+    "terminal_answer_labels": {
+      "target_code": "E03.9",
+      "accepted_code_family": "E03",
+      "accepted_alternatives": []
+    },
+    "ehr_modules": {
+      "encounter_note": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "vitals": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "labs": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_hypothyroid_unspecified_dx_01",
+            "text": "TSH is mildly elevated, but no antibody workup was completed.",
+            "supports_codes": [
+              "E03.9"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": false,
+            "source_type": "lab",
+            "module": "labs"
+          }
+        ]
+      },
+      "medications": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_hypothyroid_unspecified_01",
+            "text": "Medication list confirms levothyroxine continuation for unspecified hypothyroidism.",
+            "supports_codes": [
+              "E03.9"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "medication",
+            "module": "medications"
+          }
+        ]
+      },
+      "problem_list": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "procedures": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "billing_history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "payer_policy": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "clinician_messages": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      }
+    },
+    "target_evidence": [
+      "ev_hypothyroid_unspecified_01"
+    ],
+    "target_evidence_ids": [
+      "ev_hypothyroid_unspecified_01"
+    ],
+    "policy_rules": {
+      "version": "payer_policy_v1",
+      "active_schema_version": "v1",
+      "rules": [
+        {
+          "rule_id": "policy_evidence_required",
+          "description": "A submitted diagnosis claim must cite revealed evidence snippets.",
+          "applies_to_codes": [
+            "E03.9"
+          ],
+          "required_fields": [
+            "evidence_ids"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_reasoning_required",
+          "description": "A submitted diagnosis claim must reference a verified reasoning log.",
+          "applies_to_codes": [
+            "E03.9"
+          ],
+          "required_fields": [
+            "reasoning_log_id"
+          ],
+          "validation_type": "required_field"
+        }
+      ],
+      "claim_schema": {
+        "version": "v1",
+        "required_fields": [
+          "diagnosis_code",
+          "schema_version",
+          "evidence_ids",
+          "reasoning_log_id"
+        ]
+      }
+    },
+    "drift": {
+      "enabled": false,
+      "trigger_step": null,
+      "from_schema_version": "v1",
+      "to_schema_version": null,
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id"
+      ],
+      "expected_adaptation_action": null,
+      "expected_adaptation_criterion": "No adaptation required; schema remains stable."
+    },
+    "schema_validation_expectations": {
+      "required_schema_version": "v1",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id"
+      ],
+      "expected_valid_claim": {
+        "diagnosis_code": "E03.9",
+        "schema_version": "v1",
+        "evidence_ids": [
+          "ev_hypothyroid_unspecified_01"
+        ],
+        "reasoning_log_id": "rl_example"
+      },
+      "expected_invalid_claims": [
+        {
+          "label": "wrong_schema_version",
+          "claim": {
+            "diagnosis_code": "E03.9",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_hypothyroid_unspecified_01"
+            ],
+            "reasoning_log_id": "rl_example"
+          }
+        },
+        {
+          "label": "missing_reasoning_log_id",
+          "claim": {
+            "diagnosis_code": "E03.9",
+            "schema_version": "v1",
+            "evidence_ids": [
+              "ev_hypothyroid_unspecified_01"
+            ]
+          }
+        }
+      ]
+    },
+    "search_labels": {
+      "recommended_queries": [
+        "hypothyroidism unspecified",
+        "fatigue thyroid medication"
+      ],
+      "target_code": "E03.9",
+      "accepted_code_family": "E03"
+    },
+    "verification_checkpoints": [
+      {
+        "checkpoint_id": "reveal_target_evidence",
+        "action_type": "QUERY_EHR",
+        "required": true,
+        "expected_module": "medications",
+        "success_criterion": {
+          "revealed_evidence_ids": [
+            "ev_hypothyroid_unspecified_01"
+          ],
+          "ehr_status_after_query": "open_or_exhausted"
+        }
+      },
+      {
+        "checkpoint_id": "search_target_found",
+        "action_type": "SEARCH",
+        "required": true,
+        "success_criterion": {
+          "recommended_queries": [
+            "hypothyroidism unspecified",
+            "fatigue thyroid medication"
+          ],
+          "target_code": "E03.9",
+          "accepted_code_family": "E03"
+        }
+      },
+      {
+        "checkpoint_id": "policy_checked",
+        "action_type": "CHECK_POLICY",
+        "required": true,
+        "success_criterion": {
+          "policy_checked": true,
+          "active_schema_version": "v1"
+        }
+      },
+      {
+        "checkpoint_id": "schema_validated",
+        "action_type": "VALIDATE_CLAIM_SCHEMA",
+        "required": true,
+        "success_criterion": {
+          "required_schema_version": "v1",
+          "required_fields_present": true
+        }
+      },
+      {
+        "checkpoint_id": "reasoning_logged",
+        "action_type": "REASONING_LOG",
+        "required": true,
+        "success_criterion": {
+          "reasoning_verified": true,
+          "cited_evidence_ids": [
+            "ev_hypothyroid_unspecified_01"
+          ]
+        }
+      },
+      {
+        "checkpoint_id": "final_submit_valid",
+        "action_type": "SUBMIT",
+        "required": true,
+        "success_criterion": {
+          "diagnosis_code": "E03.9",
+          "schema_version": "v1",
+          "terminal_correctness": "exact"
+        }
+      }
+    ],
+    "generator_metadata": {
+      "generator_version": "v1",
+      "source_bank": "icd10_mock.json",
+      "seed": 7,
+      "blueprint_slug": "hypothyroid_unspecified"
+    }
+  },
+  {
+    "task_id": "v2_train_easy_overweight_counseling_v1_002",
+    "split": "train",
+    "split_tags": {
+      "split": "train",
+      "difficulty": "easy",
+      "drift_profile": "no_drift",
+      "schema_version": "v1"
+    },
+    "difficulty": "easy",
+    "patient_note": "Routine outpatient follow-up with diet and exercise counseling documented, but the decisive coding evidence remains in the hidden chart.",
+    "target_code": "E66.3",
+    "claim_schema_version": "v1",
+    "terminal_answer_labels": {
+      "target_code": "E66.3",
+      "accepted_code_family": "E66",
+      "accepted_alternatives": []
+    },
+    "ehr_modules": {
+      "encounter_note": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_overweight_counseling_01",
+            "text": "Routine checkup documents BMI 27 with diet and exercise counseling for weight management.",
+            "supports_codes": [
+              "E66.3"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "note",
+            "module": "encounter_note"
+          }
+        ]
+      },
+      "vitals": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "labs": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "medications": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "problem_list": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_overweight_counseling_dx_01",
+            "text": "Problem list notes prior thyroid screening without active disease.",
+            "supports_codes": [
+              "E03.9"
+            ],
+            "contradicts_codes": [
+              "E66.3"
+            ],
+            "required_for_grounding": false,
+            "source_type": "problem_list",
+            "module": "problem_list"
+          }
+        ]
+      },
+      "procedures": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "billing_history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "payer_policy": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "clinician_messages": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      }
+    },
+    "target_evidence": [
+      "ev_overweight_counseling_01"
+    ],
+    "target_evidence_ids": [
+      "ev_overweight_counseling_01"
+    ],
+    "policy_rules": {
+      "version": "payer_policy_v1",
+      "active_schema_version": "v1",
+      "rules": [
+        {
+          "rule_id": "policy_evidence_required",
+          "description": "A submitted diagnosis claim must cite revealed evidence snippets.",
+          "applies_to_codes": [
+            "E66.3"
+          ],
+          "required_fields": [
+            "evidence_ids"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_reasoning_required",
+          "description": "A submitted diagnosis claim must reference a verified reasoning log.",
+          "applies_to_codes": [
+            "E66.3"
+          ],
+          "required_fields": [
+            "reasoning_log_id"
+          ],
+          "validation_type": "required_field"
+        }
+      ],
+      "claim_schema": {
+        "version": "v1",
+        "required_fields": [
+          "diagnosis_code",
+          "schema_version",
+          "evidence_ids",
+          "reasoning_log_id"
+        ]
+      }
+    },
+    "drift": {
+      "enabled": false,
+      "trigger_step": null,
+      "from_schema_version": "v1",
+      "to_schema_version": null,
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id"
+      ],
+      "expected_adaptation_action": null,
+      "expected_adaptation_criterion": "No adaptation required; schema remains stable."
+    },
+    "schema_validation_expectations": {
+      "required_schema_version": "v1",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id"
+      ],
+      "expected_valid_claim": {
+        "diagnosis_code": "E66.3",
+        "schema_version": "v1",
+        "evidence_ids": [
+          "ev_overweight_counseling_01"
+        ],
+        "reasoning_log_id": "rl_example"
+      },
+      "expected_invalid_claims": [
+        {
+          "label": "wrong_schema_version",
+          "claim": {
+            "diagnosis_code": "E66.3",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_overweight_counseling_01"
+            ],
+            "reasoning_log_id": "rl_example"
+          }
+        },
+        {
+          "label": "missing_reasoning_log_id",
+          "claim": {
+            "diagnosis_code": "E66.3",
+            "schema_version": "v1",
+            "evidence_ids": [
+              "ev_overweight_counseling_01"
+            ]
+          }
+        }
+      ]
+    },
+    "search_labels": {
+      "recommended_queries": [
+        "overweight bmi counseling",
+        "bmi 27 weight management"
+      ],
+      "target_code": "E66.3",
+      "accepted_code_family": "E66"
+    },
+    "verification_checkpoints": [
+      {
+        "checkpoint_id": "reveal_target_evidence",
+        "action_type": "QUERY_EHR",
+        "required": true,
+        "expected_module": "encounter_note",
+        "success_criterion": {
+          "revealed_evidence_ids": [
+            "ev_overweight_counseling_01"
+          ],
+          "ehr_status_after_query": "open_or_exhausted"
+        }
+      },
+      {
+        "checkpoint_id": "search_target_found",
+        "action_type": "SEARCH",
+        "required": true,
+        "success_criterion": {
+          "recommended_queries": [
+            "overweight bmi counseling",
+            "bmi 27 weight management"
+          ],
+          "target_code": "E66.3",
+          "accepted_code_family": "E66"
+        }
+      },
+      {
+        "checkpoint_id": "policy_checked",
+        "action_type": "CHECK_POLICY",
+        "required": true,
+        "success_criterion": {
+          "policy_checked": true,
+          "active_schema_version": "v1"
+        }
+      },
+      {
+        "checkpoint_id": "schema_validated",
+        "action_type": "VALIDATE_CLAIM_SCHEMA",
+        "required": true,
+        "success_criterion": {
+          "required_schema_version": "v1",
+          "required_fields_present": true
+        }
+      },
+      {
+        "checkpoint_id": "reasoning_logged",
+        "action_type": "REASONING_LOG",
+        "required": true,
+        "success_criterion": {
+          "reasoning_verified": true,
+          "cited_evidence_ids": [
+            "ev_overweight_counseling_01"
+          ]
+        }
+      },
+      {
+        "checkpoint_id": "final_submit_valid",
+        "action_type": "SUBMIT",
+        "required": true,
+        "success_criterion": {
+          "diagnosis_code": "E66.3",
+          "schema_version": "v1",
+          "terminal_correctness": "exact"
+        }
+      }
+    ],
+    "generator_metadata": {
+      "generator_version": "v1",
+      "source_bank": "icd10_mock.json",
+      "seed": 7,
+      "blueprint_slug": "overweight_counseling"
+    }
+  },
+  {
+    "task_id": "v2_train_medium_chest_pain_observation_v1_003",
+    "split": "train",
+    "split_tags": {
+      "split": "train",
+      "difficulty": "medium",
+      "drift_profile": "no_drift",
+      "schema_version": "v1"
+    },
+    "difficulty": "medium",
+    "patient_note": "Emergency observation visit for chest discomfort with no hidden cardiac infarction evidence.",
+    "target_code": "R07.9",
+    "claim_schema_version": "v1",
+    "terminal_answer_labels": {
+      "target_code": "R07.9",
+      "accepted_code_family": "R07",
+      "accepted_alternatives": []
+    },
+    "ehr_modules": {
+      "encounter_note": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_chest_pain_observation_01",
+            "text": "Observation note documents chest pain without definitive infarction diagnosis.",
+            "supports_codes": [
+              "R07.9"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "note",
+            "module": "encounter_note"
+          }
+        ]
+      },
+      "vitals": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "labs": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_chest_pain_observation_dx_01",
+            "text": "Serial troponins remain within normal range during observation.",
+            "supports_codes": [
+              "R07.9"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": false,
+            "source_type": "lab",
+            "module": "labs"
+          }
+        ]
+      },
+      "medications": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "problem_list": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "procedures": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_chest_pain_observation_02",
+            "text": "Initial ECG review is nondiagnostic for acute MI.",
+            "supports_codes": [
+              "R07.9"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "procedure",
+            "module": "procedures"
+          }
+        ]
+      },
+      "history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "billing_history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "payer_policy": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "clinician_messages": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      }
+    },
+    "target_evidence": [
+      "ev_chest_pain_observation_01",
+      "ev_chest_pain_observation_02"
+    ],
+    "target_evidence_ids": [
+      "ev_chest_pain_observation_01",
+      "ev_chest_pain_observation_02"
+    ],
+    "policy_rules": {
+      "version": "payer_policy_v1",
+      "active_schema_version": "v1",
+      "rules": [
+        {
+          "rule_id": "policy_evidence_required",
+          "description": "A submitted diagnosis claim must cite revealed evidence snippets.",
+          "applies_to_codes": [
+            "R07.9"
+          ],
+          "required_fields": [
+            "evidence_ids"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_reasoning_required",
+          "description": "A submitted diagnosis claim must reference a verified reasoning log.",
+          "applies_to_codes": [
+            "R07.9"
+          ],
+          "required_fields": [
+            "reasoning_log_id"
+          ],
+          "validation_type": "required_field"
+        }
+      ],
+      "claim_schema": {
+        "version": "v1",
+        "required_fields": [
+          "diagnosis_code",
+          "schema_version",
+          "evidence_ids",
+          "reasoning_log_id"
+        ]
+      }
+    },
+    "drift": {
+      "enabled": false,
+      "trigger_step": null,
+      "from_schema_version": "v1",
+      "to_schema_version": null,
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id"
+      ],
+      "expected_adaptation_action": null,
+      "expected_adaptation_criterion": "No adaptation required; schema remains stable."
+    },
+    "schema_validation_expectations": {
+      "required_schema_version": "v1",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id"
+      ],
+      "expected_valid_claim": {
+        "diagnosis_code": "R07.9",
+        "schema_version": "v1",
+        "evidence_ids": [
+          "ev_chest_pain_observation_01",
+          "ev_chest_pain_observation_02"
+        ],
+        "reasoning_log_id": "rl_example"
+      },
+      "expected_invalid_claims": [
+        {
+          "label": "wrong_schema_version",
+          "claim": {
+            "diagnosis_code": "R07.9",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_chest_pain_observation_01",
+              "ev_chest_pain_observation_02"
+            ],
+            "reasoning_log_id": "rl_example"
+          }
+        },
+        {
+          "label": "missing_reasoning_log_id",
+          "claim": {
+            "diagnosis_code": "R07.9",
+            "schema_version": "v1",
+            "evidence_ids": [
+              "ev_chest_pain_observation_01",
+              "ev_chest_pain_observation_02"
+            ]
+          }
+        }
+      ]
+    },
+    "search_labels": {
+      "recommended_queries": [
+        "chest pain unspecified",
+        "observation chest discomfort"
+      ],
+      "target_code": "R07.9",
+      "accepted_code_family": "R07"
+    },
+    "verification_checkpoints": [
+      {
+        "checkpoint_id": "reveal_target_evidence",
+        "action_type": "QUERY_EHR",
+        "required": true,
+        "expected_module": "encounter_note",
+        "success_criterion": {
+          "revealed_evidence_ids": [
+            "ev_chest_pain_observation_01",
+            "ev_chest_pain_observation_02"
+          ],
+          "ehr_status_after_query": "open_or_exhausted"
+        }
+      },
+      {
+        "checkpoint_id": "search_target_found",
+        "action_type": "SEARCH",
+        "required": true,
+        "success_criterion": {
+          "recommended_queries": [
+            "chest pain unspecified",
+            "observation chest discomfort"
+          ],
+          "target_code": "R07.9",
+          "accepted_code_family": "R07"
+        }
+      },
+      {
+        "checkpoint_id": "policy_checked",
+        "action_type": "CHECK_POLICY",
+        "required": true,
+        "success_criterion": {
+          "policy_checked": true,
+          "active_schema_version": "v1"
+        }
+      },
+      {
+        "checkpoint_id": "schema_validated",
+        "action_type": "VALIDATE_CLAIM_SCHEMA",
+        "required": true,
+        "success_criterion": {
+          "required_schema_version": "v1",
+          "required_fields_present": true
+        }
+      },
+      {
+        "checkpoint_id": "reasoning_logged",
+        "action_type": "REASONING_LOG",
+        "required": true,
+        "success_criterion": {
+          "reasoning_verified": true,
+          "cited_evidence_ids": [
+            "ev_chest_pain_observation_01",
+            "ev_chest_pain_observation_02"
+          ]
+        }
+      },
+      {
+        "checkpoint_id": "final_submit_valid",
+        "action_type": "SUBMIT",
+        "required": true,
+        "success_criterion": {
+          "diagnosis_code": "R07.9",
+          "schema_version": "v1",
+          "terminal_correctness": "exact"
+        }
+      }
+    ],
+    "generator_metadata": {
+      "generator_version": "v1",
+      "source_bank": "icd10_mock.json",
+      "seed": 7,
+      "blueprint_slug": "chest_pain_observation"
+    }
+  },
+  {
+    "task_id": "v2_train_medium_diabetes_hyperglycemia_drift_drift_004",
+    "split": "train",
+    "split_tags": {
+      "split": "train",
+      "difficulty": "medium",
+      "drift_profile": "drift",
+      "schema_version": "v2"
+    },
+    "difficulty": "medium",
+    "patient_note": "Diabetes follow-up with medication reconciliation completed. The glucose evidence and post-drift claim requirements must be checked explicitly.",
+    "target_code": "E11.65",
+    "claim_schema_version": "v1",
+    "terminal_answer_labels": {
+      "target_code": "E11.65",
+      "accepted_code_family": "E11",
+      "accepted_alternatives": []
+    },
+    "ehr_modules": {
+      "encounter_note": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "vitals": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "labs": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_diabetes_hyperglycemia_drift_01",
+            "text": "Fasting glucose remains elevated despite treatment, documenting hyperglycemia.",
+            "supports_codes": [
+              "E11.65"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "lab",
+            "module": "labs"
+          }
+        ]
+      },
+      "medications": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_diabetes_hyperglycemia_drift_02",
+            "text": "Medication review notes intensified diabetes regimen for uncontrolled sugars.",
+            "supports_codes": [
+              "E11.65"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "medication",
+            "module": "medications"
+          }
+        ]
+      },
+      "problem_list": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "procedures": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "billing_history": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_diabetes_hyperglycemia_drift_dx_01",
+            "text": "Prior clean claim used schema v1 before the payer updated attestation rules.",
+            "supports_codes": [
+              "E11.9"
+            ],
+            "contradicts_codes": [
+              "E11.65"
+            ],
+            "required_for_grounding": false,
+            "source_type": "billing",
+            "module": "billing_history"
+          }
+        ]
+      },
+      "payer_policy": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "clinician_messages": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      }
+    },
+    "target_evidence": [
+      "ev_diabetes_hyperglycemia_drift_01",
+      "ev_diabetes_hyperglycemia_drift_02"
+    ],
+    "target_evidence_ids": [
+      "ev_diabetes_hyperglycemia_drift_01",
+      "ev_diabetes_hyperglycemia_drift_02"
+    ],
+    "policy_rules": {
+      "version": "payer_policy_v1",
+      "active_schema_version": "v1",
+      "rules": [
+        {
+          "rule_id": "policy_evidence_required",
+          "description": "A submitted diagnosis claim must cite revealed evidence snippets.",
+          "applies_to_codes": [
+            "E11.65"
+          ],
+          "required_fields": [
+            "evidence_ids"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_reasoning_required",
+          "description": "A submitted diagnosis claim must reference a verified reasoning log.",
+          "applies_to_codes": [
+            "E11.65"
+          ],
+          "required_fields": [
+            "reasoning_log_id"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_attestation_required",
+          "description": "Post-drift claims must include a non-empty policy attestation.",
+          "applies_to_codes": [
+            "E11.65"
+          ],
+          "required_fields": [
+            "policy_attestations"
+          ],
+          "validation_type": "required_field"
+        }
+      ],
+      "claim_schema": {
+        "version": "v1",
+        "required_fields": [
+          "diagnosis_code",
+          "schema_version",
+          "evidence_ids",
+          "reasoning_log_id"
+        ]
+      }
+    },
+    "drift": {
+      "enabled": true,
+      "trigger_step": 3,
+      "from_schema_version": "v1",
+      "to_schema_version": "v2",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id",
+        "policy_attestations"
+      ],
+      "expected_adaptation_action": "VALIDATE_CLAIM_SCHEMA",
+      "expected_adaptation_criterion": "After drift, the agent must validate and submit using the post-drift schema version v2 with all required fields present."
+    },
+    "schema_validation_expectations": {
+      "required_schema_version": "v2",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id",
+        "policy_attestations"
+      ],
+      "expected_valid_claim": {
+        "diagnosis_code": "E11.65",
+        "schema_version": "v2",
+        "evidence_ids": [
+          "ev_diabetes_hyperglycemia_drift_01",
+          "ev_diabetes_hyperglycemia_drift_02"
+        ],
+        "reasoning_log_id": "rl_example",
+        "policy_attestations": [
+          "policy_attestation_required"
+        ]
+      },
+      "expected_invalid_claims": [
+        {
+          "label": "wrong_schema_version",
+          "claim": {
+            "diagnosis_code": "E11.65",
+            "schema_version": "v1",
+            "evidence_ids": [
+              "ev_diabetes_hyperglycemia_drift_01",
+              "ev_diabetes_hyperglycemia_drift_02"
+            ],
+            "reasoning_log_id": "rl_example",
+            "policy_attestations": [
+              "policy_attestation_required"
+            ]
+          }
+        },
+        {
+          "label": "missing_reasoning_log_id",
+          "claim": {
+            "diagnosis_code": "E11.65",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_diabetes_hyperglycemia_drift_01",
+              "ev_diabetes_hyperglycemia_drift_02"
+            ],
+            "policy_attestations": [
+              "policy_attestation_required"
+            ]
+          }
+        },
+        {
+          "label": "missing_policy_attestations",
+          "claim": {
+            "diagnosis_code": "E11.65",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_diabetes_hyperglycemia_drift_01",
+              "ev_diabetes_hyperglycemia_drift_02"
+            ],
+            "reasoning_log_id": "rl_example"
+          }
+        }
+      ]
+    },
+    "search_labels": {
+      "recommended_queries": [
+        "type 2 diabetes hyperglycemia",
+        "poorly controlled blood sugar"
+      ],
+      "target_code": "E11.65",
+      "accepted_code_family": "E11"
+    },
+    "verification_checkpoints": [
+      {
+        "checkpoint_id": "reveal_target_evidence",
+        "action_type": "QUERY_EHR",
+        "required": true,
+        "expected_module": "labs",
+        "success_criterion": {
+          "revealed_evidence_ids": [
+            "ev_diabetes_hyperglycemia_drift_01",
+            "ev_diabetes_hyperglycemia_drift_02"
+          ],
+          "ehr_status_after_query": "open_or_exhausted"
+        }
+      },
+      {
+        "checkpoint_id": "search_target_found",
+        "action_type": "SEARCH",
+        "required": true,
+        "success_criterion": {
+          "recommended_queries": [
+            "type 2 diabetes hyperglycemia",
+            "poorly controlled blood sugar"
+          ],
+          "target_code": "E11.65",
+          "accepted_code_family": "E11"
+        }
+      },
+      {
+        "checkpoint_id": "policy_checked",
+        "action_type": "CHECK_POLICY",
+        "required": true,
+        "success_criterion": {
+          "policy_checked": true,
+          "active_schema_version": "v1"
+        }
+      },
+      {
+        "checkpoint_id": "schema_validated",
+        "action_type": "VALIDATE_CLAIM_SCHEMA",
+        "required": true,
+        "success_criterion": {
+          "required_schema_version": "v2",
+          "required_fields_present": true
+        }
+      },
+      {
+        "checkpoint_id": "reasoning_logged",
+        "action_type": "REASONING_LOG",
+        "required": true,
+        "success_criterion": {
+          "reasoning_verified": true,
+          "cited_evidence_ids": [
+            "ev_diabetes_hyperglycemia_drift_01",
+            "ev_diabetes_hyperglycemia_drift_02"
+          ]
+        }
+      },
+      {
+        "checkpoint_id": "final_submit_valid",
+        "action_type": "SUBMIT",
+        "required": true,
+        "success_criterion": {
+          "diagnosis_code": "E11.65",
+          "schema_version": "v2",
+          "terminal_correctness": "exact"
+        }
+      }
+    ],
+    "generator_metadata": {
+      "generator_version": "v1",
+      "source_bank": "icd10_mock.json",
+      "seed": 7,
+      "blueprint_slug": "diabetes_hyperglycemia_drift"
+    }
+  },
+  {
+    "task_id": "v2_train_hard_diabetes_ckd_combo_drift_drift_005",
+    "split": "train",
+    "split_tags": {
+      "split": "train",
+      "difficulty": "hard",
+      "drift_profile": "drift",
+      "schema_version": "v2"
+    },
+    "difficulty": "hard",
+    "patient_note": "Complex diabetes follow-up with renal involvement and multiple plausible near-neighbor codes.",
+    "target_code": "E11.22",
+    "claim_schema_version": "v1",
+    "terminal_answer_labels": {
+      "target_code": "E11.22",
+      "accepted_code_family": "E11",
+      "accepted_alternatives": []
+    },
+    "ehr_modules": {
+      "encounter_note": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "vitals": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "labs": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_diabetes_ckd_combo_drift_01",
+            "text": "Assessment links diabetic kidney disease to the patient's type 2 diabetes.",
+            "supports_codes": [
+              "E11.22"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "lab",
+            "module": "labs"
+          }
+        ]
+      },
+      "medications": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_diabetes_ckd_combo_drift_dx_02",
+            "text": "Medication profile includes intensified diabetes treatment for chronic control issues.",
+            "supports_codes": [
+              "E11.65"
+            ],
+            "contradicts_codes": [
+              "E11.22"
+            ],
+            "required_for_grounding": false,
+            "source_type": "medication",
+            "module": "medications"
+          }
+        ]
+      },
+      "problem_list": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_diabetes_ckd_combo_drift_02",
+            "text": "Problem list explicitly states diabetic chronic kidney disease.",
+            "supports_codes": [
+              "E11.22"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "problem_list",
+            "module": "problem_list"
+          }
+        ]
+      },
+      "procedures": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "history": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_diabetes_ckd_combo_drift_dx_01",
+            "text": "Separate note lists chronic kidney disease stage 3 as a coexisting condition.",
+            "supports_codes": [
+              "N18.3"
+            ],
+            "contradicts_codes": [
+              "E11.22"
+            ],
+            "required_for_grounding": false,
+            "source_type": "history",
+            "module": "history"
+          }
+        ]
+      },
+      "billing_history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "payer_policy": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "clinician_messages": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      }
+    },
+    "target_evidence": [
+      "ev_diabetes_ckd_combo_drift_01",
+      "ev_diabetes_ckd_combo_drift_02"
+    ],
+    "target_evidence_ids": [
+      "ev_diabetes_ckd_combo_drift_01",
+      "ev_diabetes_ckd_combo_drift_02"
+    ],
+    "policy_rules": {
+      "version": "payer_policy_v1",
+      "active_schema_version": "v1",
+      "rules": [
+        {
+          "rule_id": "policy_evidence_required",
+          "description": "A submitted diagnosis claim must cite revealed evidence snippets.",
+          "applies_to_codes": [
+            "E11.22"
+          ],
+          "required_fields": [
+            "evidence_ids"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_reasoning_required",
+          "description": "A submitted diagnosis claim must reference a verified reasoning log.",
+          "applies_to_codes": [
+            "E11.22"
+          ],
+          "required_fields": [
+            "reasoning_log_id"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_attestation_required",
+          "description": "Post-drift claims must include a non-empty policy attestation.",
+          "applies_to_codes": [
+            "E11.22"
+          ],
+          "required_fields": [
+            "policy_attestations"
+          ],
+          "validation_type": "required_field"
+        }
+      ],
+      "claim_schema": {
+        "version": "v1",
+        "required_fields": [
+          "diagnosis_code",
+          "schema_version",
+          "evidence_ids",
+          "reasoning_log_id"
+        ]
+      }
+    },
+    "drift": {
+      "enabled": true,
+      "trigger_step": 2,
+      "from_schema_version": "v1",
+      "to_schema_version": "v2",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id",
+        "policy_attestations"
+      ],
+      "expected_adaptation_action": "VALIDATE_CLAIM_SCHEMA",
+      "expected_adaptation_criterion": "After drift, the agent must validate and submit using the post-drift schema version v2 with all required fields present."
+    },
+    "schema_validation_expectations": {
+      "required_schema_version": "v2",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id",
+        "policy_attestations"
+      ],
+      "expected_valid_claim": {
+        "diagnosis_code": "E11.22",
+        "schema_version": "v2",
+        "evidence_ids": [
+          "ev_diabetes_ckd_combo_drift_01",
+          "ev_diabetes_ckd_combo_drift_02"
+        ],
+        "reasoning_log_id": "rl_example",
+        "policy_attestations": [
+          "policy_attestation_required"
+        ]
+      },
+      "expected_invalid_claims": [
+        {
+          "label": "wrong_schema_version",
+          "claim": {
+            "diagnosis_code": "E11.22",
+            "schema_version": "v1",
+            "evidence_ids": [
+              "ev_diabetes_ckd_combo_drift_01",
+              "ev_diabetes_ckd_combo_drift_02"
+            ],
+            "reasoning_log_id": "rl_example",
+            "policy_attestations": [
+              "policy_attestation_required"
+            ]
+          }
+        },
+        {
+          "label": "missing_reasoning_log_id",
+          "claim": {
+            "diagnosis_code": "E11.22",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_diabetes_ckd_combo_drift_01",
+              "ev_diabetes_ckd_combo_drift_02"
+            ],
+            "policy_attestations": [
+              "policy_attestation_required"
+            ]
+          }
+        },
+        {
+          "label": "missing_policy_attestations",
+          "claim": {
+            "diagnosis_code": "E11.22",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_diabetes_ckd_combo_drift_01",
+              "ev_diabetes_ckd_combo_drift_02"
+            ],
+            "reasoning_log_id": "rl_example"
+          }
+        }
+      ]
+    },
+    "search_labels": {
+      "recommended_queries": [
+        "diabetes chronic kidney disease",
+        "diabetic ckd"
+      ],
+      "target_code": "E11.22",
+      "accepted_code_family": "E11"
+    },
+    "verification_checkpoints": [
+      {
+        "checkpoint_id": "reveal_target_evidence",
+        "action_type": "QUERY_EHR",
+        "required": true,
+        "expected_module": "labs",
+        "success_criterion": {
+          "revealed_evidence_ids": [
+            "ev_diabetes_ckd_combo_drift_01",
+            "ev_diabetes_ckd_combo_drift_02"
+          ],
+          "ehr_status_after_query": "open_or_exhausted"
+        }
+      },
+      {
+        "checkpoint_id": "search_target_found",
+        "action_type": "SEARCH",
+        "required": true,
+        "success_criterion": {
+          "recommended_queries": [
+            "diabetes chronic kidney disease",
+            "diabetic ckd"
+          ],
+          "target_code": "E11.22",
+          "accepted_code_family": "E11"
+        }
+      },
+      {
+        "checkpoint_id": "policy_checked",
+        "action_type": "CHECK_POLICY",
+        "required": true,
+        "success_criterion": {
+          "policy_checked": true,
+          "active_schema_version": "v1"
+        }
+      },
+      {
+        "checkpoint_id": "schema_validated",
+        "action_type": "VALIDATE_CLAIM_SCHEMA",
+        "required": true,
+        "success_criterion": {
+          "required_schema_version": "v2",
+          "required_fields_present": true
+        }
+      },
+      {
+        "checkpoint_id": "reasoning_logged",
+        "action_type": "REASONING_LOG",
+        "required": true,
+        "success_criterion": {
+          "reasoning_verified": true,
+          "cited_evidence_ids": [
+            "ev_diabetes_ckd_combo_drift_01",
+            "ev_diabetes_ckd_combo_drift_02"
+          ]
+        }
+      },
+      {
+        "checkpoint_id": "final_submit_valid",
+        "action_type": "SUBMIT",
+        "required": true,
+        "success_criterion": {
+          "diagnosis_code": "E11.22",
+          "schema_version": "v2",
+          "terminal_correctness": "exact"
+        }
+      }
+    ],
+    "generator_metadata": {
+      "generator_version": "v1",
+      "source_bank": "icd10_mock.json",
+      "seed": 7,
+      "blueprint_slug": "diabetes_ckd_combo_drift"
+    }
+  },
+  {
+    "task_id": "v2_train_hard_morbid_obesity_policy_drift_drift_006",
+    "split": "train",
+    "split_tags": {
+      "split": "train",
+      "difficulty": "hard",
+      "drift_profile": "drift",
+      "schema_version": "v2"
+    },
+    "difficulty": "hard",
+    "patient_note": "Longitudinal obesity-management case with payer-rule drift and competing obesity-family codes.",
+    "target_code": "E66.01",
+    "claim_schema_version": "v1",
+    "terminal_answer_labels": {
+      "target_code": "E66.01",
+      "accepted_code_family": "E66",
+      "accepted_alternatives": []
+    },
+    "ehr_modules": {
+      "encounter_note": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_morbid_obesity_policy_drift_02",
+            "text": "Clinician assessment explicitly documents severe obesity due to excess calories.",
+            "supports_codes": [
+              "E66.01"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "note",
+            "module": "encounter_note"
+          }
+        ]
+      },
+      "vitals": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_morbid_obesity_policy_drift_01",
+            "text": "Vitals show BMI 41 documenting morbid obesity due to excess calories.",
+            "supports_codes": [
+              "E66.01"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "vital",
+            "module": "vitals"
+          }
+        ]
+      },
+      "labs": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "medications": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "problem_list": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_morbid_obesity_policy_drift_dx_02",
+            "text": "Legacy problem list still contains a generic overweight entry from an earlier visit.",
+            "supports_codes": [
+              "E66.3"
+            ],
+            "contradicts_codes": [
+              "E66.01"
+            ],
+            "required_for_grounding": false,
+            "source_type": "problem_list",
+            "module": "problem_list"
+          }
+        ]
+      },
+      "procedures": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "billing_history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "payer_policy": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "clinician_messages": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_morbid_obesity_policy_drift_dx_01",
+            "text": "Message confirms updated payer attestation rules for obesity claims after drift.",
+            "supports_codes": [
+              "E66.01"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": false,
+            "source_type": "message",
+            "module": "clinician_messages"
+          }
+        ]
+      }
+    },
+    "target_evidence": [
+      "ev_morbid_obesity_policy_drift_01",
+      "ev_morbid_obesity_policy_drift_02"
+    ],
+    "target_evidence_ids": [
+      "ev_morbid_obesity_policy_drift_01",
+      "ev_morbid_obesity_policy_drift_02"
+    ],
+    "policy_rules": {
+      "version": "payer_policy_v1",
+      "active_schema_version": "v1",
+      "rules": [
+        {
+          "rule_id": "policy_evidence_required",
+          "description": "A submitted diagnosis claim must cite revealed evidence snippets.",
+          "applies_to_codes": [
+            "E66.01"
+          ],
+          "required_fields": [
+            "evidence_ids"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_reasoning_required",
+          "description": "A submitted diagnosis claim must reference a verified reasoning log.",
+          "applies_to_codes": [
+            "E66.01"
+          ],
+          "required_fields": [
+            "reasoning_log_id"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_attestation_required",
+          "description": "Post-drift claims must include a non-empty policy attestation.",
+          "applies_to_codes": [
+            "E66.01"
+          ],
+          "required_fields": [
+            "policy_attestations"
+          ],
+          "validation_type": "required_field"
+        }
+      ],
+      "claim_schema": {
+        "version": "v1",
+        "required_fields": [
+          "diagnosis_code",
+          "schema_version",
+          "evidence_ids",
+          "reasoning_log_id"
+        ]
+      }
+    },
+    "drift": {
+      "enabled": true,
+      "trigger_step": 2,
+      "from_schema_version": "v1",
+      "to_schema_version": "v2",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id",
+        "policy_attestations"
+      ],
+      "expected_adaptation_action": "VALIDATE_CLAIM_SCHEMA",
+      "expected_adaptation_criterion": "After drift, the agent must validate and submit using the post-drift schema version v2 with all required fields present."
+    },
+    "schema_validation_expectations": {
+      "required_schema_version": "v2",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id",
+        "policy_attestations"
+      ],
+      "expected_valid_claim": {
+        "diagnosis_code": "E66.01",
+        "schema_version": "v2",
+        "evidence_ids": [
+          "ev_morbid_obesity_policy_drift_01",
+          "ev_morbid_obesity_policy_drift_02"
+        ],
+        "reasoning_log_id": "rl_example",
+        "policy_attestations": [
+          "policy_attestation_required"
+        ]
+      },
+      "expected_invalid_claims": [
+        {
+          "label": "wrong_schema_version",
+          "claim": {
+            "diagnosis_code": "E66.01",
+            "schema_version": "v1",
+            "evidence_ids": [
+              "ev_morbid_obesity_policy_drift_01",
+              "ev_morbid_obesity_policy_drift_02"
+            ],
+            "reasoning_log_id": "rl_example",
+            "policy_attestations": [
+              "policy_attestation_required"
+            ]
+          }
+        },
+        {
+          "label": "missing_reasoning_log_id",
+          "claim": {
+            "diagnosis_code": "E66.01",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_morbid_obesity_policy_drift_01",
+              "ev_morbid_obesity_policy_drift_02"
+            ],
+            "policy_attestations": [
+              "policy_attestation_required"
+            ]
+          }
+        },
+        {
+          "label": "missing_policy_attestations",
+          "claim": {
+            "diagnosis_code": "E66.01",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_morbid_obesity_policy_drift_01",
+              "ev_morbid_obesity_policy_drift_02"
+            ],
+            "reasoning_log_id": "rl_example"
+          }
+        }
+      ]
+    },
+    "search_labels": {
+      "recommended_queries": [
+        "morbid obesity excess calories",
+        "severe obesity counseling"
+      ],
+      "target_code": "E66.01",
+      "accepted_code_family": "E66"
+    },
+    "verification_checkpoints": [
+      {
+        "checkpoint_id": "reveal_target_evidence",
+        "action_type": "QUERY_EHR",
+        "required": true,
+        "expected_module": "vitals",
+        "success_criterion": {
+          "revealed_evidence_ids": [
+            "ev_morbid_obesity_policy_drift_01",
+            "ev_morbid_obesity_policy_drift_02"
+          ],
+          "ehr_status_after_query": "open_or_exhausted"
+        }
+      },
+      {
+        "checkpoint_id": "search_target_found",
+        "action_type": "SEARCH",
+        "required": true,
+        "success_criterion": {
+          "recommended_queries": [
+            "morbid obesity excess calories",
+            "severe obesity counseling"
+          ],
+          "target_code": "E66.01",
+          "accepted_code_family": "E66"
+        }
+      },
+      {
+        "checkpoint_id": "policy_checked",
+        "action_type": "CHECK_POLICY",
+        "required": true,
+        "success_criterion": {
+          "policy_checked": true,
+          "active_schema_version": "v1"
+        }
+      },
+      {
+        "checkpoint_id": "schema_validated",
+        "action_type": "VALIDATE_CLAIM_SCHEMA",
+        "required": true,
+        "success_criterion": {
+          "required_schema_version": "v2",
+          "required_fields_present": true
+        }
+      },
+      {
+        "checkpoint_id": "reasoning_logged",
+        "action_type": "REASONING_LOG",
+        "required": true,
+        "success_criterion": {
+          "reasoning_verified": true,
+          "cited_evidence_ids": [
+            "ev_morbid_obesity_policy_drift_01",
+            "ev_morbid_obesity_policy_drift_02"
+          ]
+        }
+      },
+      {
+        "checkpoint_id": "final_submit_valid",
+        "action_type": "SUBMIT",
+        "required": true,
+        "success_criterion": {
+          "diagnosis_code": "E66.01",
+          "schema_version": "v2",
+          "terminal_correctness": "exact"
+        }
+      }
+    ],
+    "generator_metadata": {
+      "generator_version": "v1",
+      "source_bank": "icd10_mock.json",
+      "seed": 7,
+      "blueprint_slug": "morbid_obesity_policy_drift"
+    }
+  },
+  {
+    "task_id": "v2_eval_easy_hashimoto_confirmation_v1_007",
+    "split": "eval",
+    "split_tags": {
+      "split": "eval",
+      "difficulty": "easy",
+      "drift_profile": "no_drift",
+      "schema_version": "v1"
+    },
+    "difficulty": "easy",
+    "patient_note": "Endocrinology follow-up for fatigue and thyroid symptoms. Hidden labs and problem list determine the most specific code.",
+    "target_code": "E06.3",
+    "claim_schema_version": "v1",
+    "terminal_answer_labels": {
+      "target_code": "E06.3",
+      "accepted_code_family": "E06",
+      "accepted_alternatives": []
+    },
+    "ehr_modules": {
+      "encounter_note": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "vitals": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "labs": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_hashimoto_confirmation_01",
+            "text": "Lab review shows elevated TPO antibodies consistent with Hashimoto disease.",
+            "supports_codes": [
+              "E06.3"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "lab",
+            "module": "labs"
+          }
+        ]
+      },
+      "medications": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "problem_list": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "procedures": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "history": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_hashimoto_confirmation_dx_01",
+            "text": "Family history includes unspecified hypothyroidism in a parent.",
+            "supports_codes": [
+              "E03.9"
+            ],
+            "contradicts_codes": [
+              "E06.3"
+            ],
+            "required_for_grounding": false,
+            "source_type": "history",
+            "module": "history"
+          }
+        ]
+      },
+      "billing_history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "payer_policy": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "clinician_messages": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      }
+    },
+    "target_evidence": [
+      "ev_hashimoto_confirmation_01"
+    ],
+    "target_evidence_ids": [
+      "ev_hashimoto_confirmation_01"
+    ],
+    "policy_rules": {
+      "version": "payer_policy_v1",
+      "active_schema_version": "v1",
+      "rules": [
+        {
+          "rule_id": "policy_evidence_required",
+          "description": "A submitted diagnosis claim must cite revealed evidence snippets.",
+          "applies_to_codes": [
+            "E06.3"
+          ],
+          "required_fields": [
+            "evidence_ids"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_reasoning_required",
+          "description": "A submitted diagnosis claim must reference a verified reasoning log.",
+          "applies_to_codes": [
+            "E06.3"
+          ],
+          "required_fields": [
+            "reasoning_log_id"
+          ],
+          "validation_type": "required_field"
+        }
+      ],
+      "claim_schema": {
+        "version": "v1",
+        "required_fields": [
+          "diagnosis_code",
+          "schema_version",
+          "evidence_ids",
+          "reasoning_log_id"
+        ]
+      }
+    },
+    "drift": {
+      "enabled": false,
+      "trigger_step": null,
+      "from_schema_version": "v1",
+      "to_schema_version": null,
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id"
+      ],
+      "expected_adaptation_action": null,
+      "expected_adaptation_criterion": "No adaptation required; schema remains stable."
+    },
+    "schema_validation_expectations": {
+      "required_schema_version": "v1",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id"
+      ],
+      "expected_valid_claim": {
+        "diagnosis_code": "E06.3",
+        "schema_version": "v1",
+        "evidence_ids": [
+          "ev_hashimoto_confirmation_01"
+        ],
+        "reasoning_log_id": "rl_example"
+      },
+      "expected_invalid_claims": [
+        {
+          "label": "wrong_schema_version",
+          "claim": {
+            "diagnosis_code": "E06.3",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_hashimoto_confirmation_01"
+            ],
+            "reasoning_log_id": "rl_example"
+          }
+        },
+        {
+          "label": "missing_reasoning_log_id",
+          "claim": {
+            "diagnosis_code": "E06.3",
+            "schema_version": "v1",
+            "evidence_ids": [
+              "ev_hashimoto_confirmation_01"
+            ]
+          }
+        }
+      ]
+    },
+    "search_labels": {
+      "recommended_queries": [
+        "hashimoto tpo antibodies",
+        "autoimmune thyroiditis"
+      ],
+      "target_code": "E06.3",
+      "accepted_code_family": "E06"
+    },
+    "verification_checkpoints": [
+      {
+        "checkpoint_id": "reveal_target_evidence",
+        "action_type": "QUERY_EHR",
+        "required": true,
+        "expected_module": "labs",
+        "success_criterion": {
+          "revealed_evidence_ids": [
+            "ev_hashimoto_confirmation_01"
+          ],
+          "ehr_status_after_query": "open_or_exhausted"
+        }
+      },
+      {
+        "checkpoint_id": "search_target_found",
+        "action_type": "SEARCH",
+        "required": true,
+        "success_criterion": {
+          "recommended_queries": [
+            "hashimoto tpo antibodies",
+            "autoimmune thyroiditis"
+          ],
+          "target_code": "E06.3",
+          "accepted_code_family": "E06"
+        }
+      },
+      {
+        "checkpoint_id": "policy_checked",
+        "action_type": "CHECK_POLICY",
+        "required": true,
+        "success_criterion": {
+          "policy_checked": true,
+          "active_schema_version": "v1"
+        }
+      },
+      {
+        "checkpoint_id": "schema_validated",
+        "action_type": "VALIDATE_CLAIM_SCHEMA",
+        "required": true,
+        "success_criterion": {
+          "required_schema_version": "v1",
+          "required_fields_present": true
+        }
+      },
+      {
+        "checkpoint_id": "reasoning_logged",
+        "action_type": "REASONING_LOG",
+        "required": true,
+        "success_criterion": {
+          "reasoning_verified": true,
+          "cited_evidence_ids": [
+            "ev_hashimoto_confirmation_01"
+          ]
+        }
+      },
+      {
+        "checkpoint_id": "final_submit_valid",
+        "action_type": "SUBMIT",
+        "required": true,
+        "success_criterion": {
+          "diagnosis_code": "E06.3",
+          "schema_version": "v1",
+          "terminal_correctness": "exact"
+        }
+      }
+    ],
+    "generator_metadata": {
+      "generator_version": "v1",
+      "source_bank": "icd10_mock.json",
+      "seed": 7,
+      "blueprint_slug": "hashimoto_confirmation"
+    }
+  },
+  {
+    "task_id": "v2_eval_medium_ckd_stage_three_v2_008",
+    "split": "eval",
+    "split_tags": {
+      "split": "eval",
+      "difficulty": "medium",
+      "drift_profile": "no_drift",
+      "schema_version": "v2"
+    },
+    "difficulty": "medium",
+    "patient_note": "Nephrology follow-up references chronic kidney disease progression, but stage confirmation is hidden in the chart.",
+    "target_code": "N18.3",
+    "claim_schema_version": "v2",
+    "terminal_answer_labels": {
+      "target_code": "N18.3",
+      "accepted_code_family": "N18",
+      "accepted_alternatives": []
+    },
+    "ehr_modules": {
+      "encounter_note": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "vitals": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "labs": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_ckd_stage_three_01",
+            "text": "Metabolic panel and nephrology assessment document chronic kidney disease stage 3.",
+            "supports_codes": [
+              "N18.3"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "lab",
+            "module": "labs"
+          }
+        ]
+      },
+      "medications": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "problem_list": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_ckd_stage_three_02",
+            "text": "Problem list marks CKD stage 3 as an active chronic condition.",
+            "supports_codes": [
+              "N18.3"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "problem_list",
+            "module": "problem_list"
+          }
+        ]
+      },
+      "procedures": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "history": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_ckd_stage_three_dx_01",
+            "text": "History mentions prior acute kidney injury now resolved.",
+            "supports_codes": [
+              "N18.3"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": false,
+            "source_type": "history",
+            "module": "history"
+          }
+        ]
+      },
+      "billing_history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "payer_policy": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "clinician_messages": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      }
+    },
+    "target_evidence": [
+      "ev_ckd_stage_three_01",
+      "ev_ckd_stage_three_02"
+    ],
+    "target_evidence_ids": [
+      "ev_ckd_stage_three_01",
+      "ev_ckd_stage_three_02"
+    ],
+    "policy_rules": {
+      "version": "payer_policy_v2",
+      "active_schema_version": "v2",
+      "rules": [
+        {
+          "rule_id": "policy_evidence_required",
+          "description": "A submitted diagnosis claim must cite revealed evidence snippets.",
+          "applies_to_codes": [
+            "N18.3"
+          ],
+          "required_fields": [
+            "evidence_ids"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_reasoning_required",
+          "description": "A submitted diagnosis claim must reference a verified reasoning log.",
+          "applies_to_codes": [
+            "N18.3"
+          ],
+          "required_fields": [
+            "reasoning_log_id"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_attestation_required",
+          "description": "Post-drift claims must include a non-empty policy attestation.",
+          "applies_to_codes": [
+            "N18.3"
+          ],
+          "required_fields": [
+            "policy_attestations"
+          ],
+          "validation_type": "required_field"
+        }
+      ],
+      "claim_schema": {
+        "version": "v2",
+        "required_fields": [
+          "diagnosis_code",
+          "schema_version",
+          "evidence_ids",
+          "reasoning_log_id",
+          "policy_attestations"
+        ]
+      }
+    },
+    "drift": {
+      "enabled": false,
+      "trigger_step": null,
+      "from_schema_version": "v2",
+      "to_schema_version": null,
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id",
+        "policy_attestations"
+      ],
+      "expected_adaptation_action": null,
+      "expected_adaptation_criterion": "No adaptation required; schema remains stable."
+    },
+    "schema_validation_expectations": {
+      "required_schema_version": "v2",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id",
+        "policy_attestations"
+      ],
+      "expected_valid_claim": {
+        "diagnosis_code": "N18.3",
+        "schema_version": "v2",
+        "evidence_ids": [
+          "ev_ckd_stage_three_01",
+          "ev_ckd_stage_three_02"
+        ],
+        "reasoning_log_id": "rl_example",
+        "policy_attestations": [
+          "policy_attestation_required"
+        ]
+      },
+      "expected_invalid_claims": [
+        {
+          "label": "wrong_schema_version",
+          "claim": {
+            "diagnosis_code": "N18.3",
+            "schema_version": "v1",
+            "evidence_ids": [
+              "ev_ckd_stage_three_01",
+              "ev_ckd_stage_three_02"
+            ],
+            "reasoning_log_id": "rl_example",
+            "policy_attestations": [
+              "policy_attestation_required"
+            ]
+          }
+        },
+        {
+          "label": "missing_reasoning_log_id",
+          "claim": {
+            "diagnosis_code": "N18.3",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_ckd_stage_three_01",
+              "ev_ckd_stage_three_02"
+            ],
+            "policy_attestations": [
+              "policy_attestation_required"
+            ]
+          }
+        },
+        {
+          "label": "missing_policy_attestations",
+          "claim": {
+            "diagnosis_code": "N18.3",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_ckd_stage_three_01",
+              "ev_ckd_stage_three_02"
+            ],
+            "reasoning_log_id": "rl_example"
+          }
+        }
+      ]
+    },
+    "search_labels": {
+      "recommended_queries": [
+        "chronic kidney disease stage 3",
+        "moderate ckd"
+      ],
+      "target_code": "N18.3",
+      "accepted_code_family": "N18"
+    },
+    "verification_checkpoints": [
+      {
+        "checkpoint_id": "reveal_target_evidence",
+        "action_type": "QUERY_EHR",
+        "required": true,
+        "expected_module": "labs",
+        "success_criterion": {
+          "revealed_evidence_ids": [
+            "ev_ckd_stage_three_01",
+            "ev_ckd_stage_three_02"
+          ],
+          "ehr_status_after_query": "open_or_exhausted"
+        }
+      },
+      {
+        "checkpoint_id": "search_target_found",
+        "action_type": "SEARCH",
+        "required": true,
+        "success_criterion": {
+          "recommended_queries": [
+            "chronic kidney disease stage 3",
+            "moderate ckd"
+          ],
+          "target_code": "N18.3",
+          "accepted_code_family": "N18"
+        }
+      },
+      {
+        "checkpoint_id": "policy_checked",
+        "action_type": "CHECK_POLICY",
+        "required": true,
+        "success_criterion": {
+          "policy_checked": true,
+          "active_schema_version": "v2"
+        }
+      },
+      {
+        "checkpoint_id": "schema_validated",
+        "action_type": "VALIDATE_CLAIM_SCHEMA",
+        "required": true,
+        "success_criterion": {
+          "required_schema_version": "v2",
+          "required_fields_present": true
+        }
+      },
+      {
+        "checkpoint_id": "reasoning_logged",
+        "action_type": "REASONING_LOG",
+        "required": true,
+        "success_criterion": {
+          "reasoning_verified": true,
+          "cited_evidence_ids": [
+            "ev_ckd_stage_three_01",
+            "ev_ckd_stage_three_02"
+          ]
+        }
+      },
+      {
+        "checkpoint_id": "final_submit_valid",
+        "action_type": "SUBMIT",
+        "required": true,
+        "success_criterion": {
+          "diagnosis_code": "N18.3",
+          "schema_version": "v2",
+          "terminal_correctness": "exact"
+        }
+      }
+    ],
+    "generator_metadata": {
+      "generator_version": "v1",
+      "source_bank": "icd10_mock.json",
+      "seed": 7,
+      "blueprint_slug": "ckd_stage_three"
+    }
+  },
+  {
+    "task_id": "v2_eval_hard_acute_mi_drift_drift_009",
+    "split": "eval",
+    "split_tags": {
+      "split": "eval",
+      "difficulty": "hard",
+      "drift_profile": "drift",
+      "schema_version": "v2"
+    },
+    "difficulty": "hard",
+    "patient_note": "Emergency cardiac admission requires coordinated evidence, policy re-check, and a post-drift valid claim.",
+    "target_code": "I21.9",
+    "claim_schema_version": "v1",
+    "terminal_answer_labels": {
+      "target_code": "I21.9",
+      "accepted_code_family": "I21",
+      "accepted_alternatives": []
+    },
+    "ehr_modules": {
+      "encounter_note": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_acute_mi_drift_01",
+            "text": "ER note documents crushing chest pain radiating to the left arm.",
+            "supports_codes": [
+              "I21.9"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "note",
+            "module": "encounter_note"
+          }
+        ]
+      },
+      "vitals": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "labs": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_acute_mi_drift_02",
+            "text": "Troponin levels are markedly elevated, supporting acute myocardial infarction.",
+            "supports_codes": [
+              "I21.9"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "lab",
+            "module": "labs"
+          }
+        ]
+      },
+      "medications": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "problem_list": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "procedures": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_acute_mi_drift_03",
+            "text": "EKG interpretation confirms an acute myocardial infarction pattern.",
+            "supports_codes": [
+              "I21.9"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "procedure",
+            "module": "procedures"
+          }
+        ]
+      },
+      "history": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_acute_mi_drift_dx_01",
+            "text": "History includes prior reflux symptoms unrelated to the current event.",
+            "supports_codes": [
+              "R07.9"
+            ],
+            "contradicts_codes": [
+              "I21.9"
+            ],
+            "required_for_grounding": false,
+            "source_type": "history",
+            "module": "history"
+          }
+        ]
+      },
+      "billing_history": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_acute_mi_drift_dx_02",
+            "text": "Previous chest-pain observation claim used schema v1 without attestation.",
+            "supports_codes": [
+              "R07.9"
+            ],
+            "contradicts_codes": [
+              "I21.9"
+            ],
+            "required_for_grounding": false,
+            "source_type": "billing",
+            "module": "billing_history"
+          }
+        ]
+      },
+      "payer_policy": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "clinician_messages": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      }
+    },
+    "target_evidence": [
+      "ev_acute_mi_drift_01",
+      "ev_acute_mi_drift_02",
+      "ev_acute_mi_drift_03"
+    ],
+    "target_evidence_ids": [
+      "ev_acute_mi_drift_01",
+      "ev_acute_mi_drift_02",
+      "ev_acute_mi_drift_03"
+    ],
+    "policy_rules": {
+      "version": "payer_policy_v1",
+      "active_schema_version": "v1",
+      "rules": [
+        {
+          "rule_id": "policy_evidence_required",
+          "description": "A submitted diagnosis claim must cite revealed evidence snippets.",
+          "applies_to_codes": [
+            "I21.9"
+          ],
+          "required_fields": [
+            "evidence_ids"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_reasoning_required",
+          "description": "A submitted diagnosis claim must reference a verified reasoning log.",
+          "applies_to_codes": [
+            "I21.9"
+          ],
+          "required_fields": [
+            "reasoning_log_id"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_attestation_required",
+          "description": "Post-drift claims must include a non-empty policy attestation.",
+          "applies_to_codes": [
+            "I21.9"
+          ],
+          "required_fields": [
+            "policy_attestations"
+          ],
+          "validation_type": "required_field"
+        }
+      ],
+      "claim_schema": {
+        "version": "v1",
+        "required_fields": [
+          "diagnosis_code",
+          "schema_version",
+          "evidence_ids",
+          "reasoning_log_id"
+        ]
+      }
+    },
+    "drift": {
+      "enabled": true,
+      "trigger_step": 2,
+      "from_schema_version": "v1",
+      "to_schema_version": "v2",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id",
+        "policy_attestations"
+      ],
+      "expected_adaptation_action": "VALIDATE_CLAIM_SCHEMA",
+      "expected_adaptation_criterion": "After drift, the agent must validate and submit using the post-drift schema version v2 with all required fields present."
+    },
+    "schema_validation_expectations": {
+      "required_schema_version": "v2",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id",
+        "policy_attestations"
+      ],
+      "expected_valid_claim": {
+        "diagnosis_code": "I21.9",
+        "schema_version": "v2",
+        "evidence_ids": [
+          "ev_acute_mi_drift_01",
+          "ev_acute_mi_drift_02",
+          "ev_acute_mi_drift_03"
+        ],
+        "reasoning_log_id": "rl_example",
+        "policy_attestations": [
+          "policy_attestation_required"
+        ]
+      },
+      "expected_invalid_claims": [
+        {
+          "label": "wrong_schema_version",
+          "claim": {
+            "diagnosis_code": "I21.9",
+            "schema_version": "v1",
+            "evidence_ids": [
+              "ev_acute_mi_drift_01",
+              "ev_acute_mi_drift_02",
+              "ev_acute_mi_drift_03"
+            ],
+            "reasoning_log_id": "rl_example",
+            "policy_attestations": [
+              "policy_attestation_required"
+            ]
+          }
+        },
+        {
+          "label": "missing_reasoning_log_id",
+          "claim": {
+            "diagnosis_code": "I21.9",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_acute_mi_drift_01",
+              "ev_acute_mi_drift_02",
+              "ev_acute_mi_drift_03"
+            ],
+            "policy_attestations": [
+              "policy_attestation_required"
+            ]
+          }
+        },
+        {
+          "label": "missing_policy_attestations",
+          "claim": {
+            "diagnosis_code": "I21.9",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_acute_mi_drift_01",
+              "ev_acute_mi_drift_02",
+              "ev_acute_mi_drift_03"
+            ],
+            "reasoning_log_id": "rl_example"
+          }
+        }
+      ]
+    },
+    "search_labels": {
+      "recommended_queries": [
+        "acute myocardial infarction",
+        "heart attack troponin ekg"
+      ],
+      "target_code": "I21.9",
+      "accepted_code_family": "I21"
+    },
+    "verification_checkpoints": [
+      {
+        "checkpoint_id": "reveal_target_evidence",
+        "action_type": "QUERY_EHR",
+        "required": true,
+        "expected_module": "encounter_note",
+        "success_criterion": {
+          "revealed_evidence_ids": [
+            "ev_acute_mi_drift_01",
+            "ev_acute_mi_drift_02",
+            "ev_acute_mi_drift_03"
+          ],
+          "ehr_status_after_query": "open_or_exhausted"
+        }
+      },
+      {
+        "checkpoint_id": "search_target_found",
+        "action_type": "SEARCH",
+        "required": true,
+        "success_criterion": {
+          "recommended_queries": [
+            "acute myocardial infarction",
+            "heart attack troponin ekg"
+          ],
+          "target_code": "I21.9",
+          "accepted_code_family": "I21"
+        }
+      },
+      {
+        "checkpoint_id": "policy_checked",
+        "action_type": "CHECK_POLICY",
+        "required": true,
+        "success_criterion": {
+          "policy_checked": true,
+          "active_schema_version": "v1"
+        }
+      },
+      {
+        "checkpoint_id": "schema_validated",
+        "action_type": "VALIDATE_CLAIM_SCHEMA",
+        "required": true,
+        "success_criterion": {
+          "required_schema_version": "v2",
+          "required_fields_present": true
+        }
+      },
+      {
+        "checkpoint_id": "reasoning_logged",
+        "action_type": "REASONING_LOG",
+        "required": true,
+        "success_criterion": {
+          "reasoning_verified": true,
+          "cited_evidence_ids": [
+            "ev_acute_mi_drift_01",
+            "ev_acute_mi_drift_02",
+            "ev_acute_mi_drift_03"
+          ]
+        }
+      },
+      {
+        "checkpoint_id": "final_submit_valid",
+        "action_type": "SUBMIT",
+        "required": true,
+        "success_criterion": {
+          "diagnosis_code": "I21.9",
+          "schema_version": "v2",
+          "terminal_correctness": "exact"
+        }
+      }
+    ],
+    "generator_metadata": {
+      "generator_version": "v1",
+      "source_bank": "icd10_mock.json",
+      "seed": 7,
+      "blueprint_slug": "acute_mi_drift"
+    }
+  },
+  {
+    "task_id": "v2_smoke_easy_hypothyroid_unspecified_v1_010",
+    "split": "smoke",
+    "split_tags": {
+      "split": "smoke",
+      "difficulty": "easy",
+      "drift_profile": "no_drift",
+      "schema_version": "v1"
+    },
+    "difficulty": "easy",
+    "patient_note": "Primary care visit for chronic fatigue; specific autoimmune confirmation is absent unless the agent over-reads distractors.",
+    "target_code": "E03.9",
+    "claim_schema_version": "v1",
+    "terminal_answer_labels": {
+      "target_code": "E03.9",
+      "accepted_code_family": "E03",
+      "accepted_alternatives": []
+    },
+    "ehr_modules": {
+      "encounter_note": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "vitals": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "labs": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_hypothyroid_unspecified_dx_01",
+            "text": "TSH is mildly elevated, but no antibody workup was completed.",
+            "supports_codes": [
+              "E03.9"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": false,
+            "source_type": "lab",
+            "module": "labs"
+          }
+        ]
+      },
+      "medications": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_hypothyroid_unspecified_01",
+            "text": "Medication list confirms levothyroxine continuation for unspecified hypothyroidism.",
+            "supports_codes": [
+              "E03.9"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "medication",
+            "module": "medications"
+          }
+        ]
+      },
+      "problem_list": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "procedures": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "billing_history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "payer_policy": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "clinician_messages": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      }
+    },
+    "target_evidence": [
+      "ev_hypothyroid_unspecified_01"
+    ],
+    "target_evidence_ids": [
+      "ev_hypothyroid_unspecified_01"
+    ],
+    "policy_rules": {
+      "version": "payer_policy_v1",
+      "active_schema_version": "v1",
+      "rules": [
+        {
+          "rule_id": "policy_evidence_required",
+          "description": "A submitted diagnosis claim must cite revealed evidence snippets.",
+          "applies_to_codes": [
+            "E03.9"
+          ],
+          "required_fields": [
+            "evidence_ids"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_reasoning_required",
+          "description": "A submitted diagnosis claim must reference a verified reasoning log.",
+          "applies_to_codes": [
+            "E03.9"
+          ],
+          "required_fields": [
+            "reasoning_log_id"
+          ],
+          "validation_type": "required_field"
+        }
+      ],
+      "claim_schema": {
+        "version": "v1",
+        "required_fields": [
+          "diagnosis_code",
+          "schema_version",
+          "evidence_ids",
+          "reasoning_log_id"
+        ]
+      }
+    },
+    "drift": {
+      "enabled": false,
+      "trigger_step": null,
+      "from_schema_version": "v1",
+      "to_schema_version": null,
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id"
+      ],
+      "expected_adaptation_action": null,
+      "expected_adaptation_criterion": "No adaptation required; schema remains stable."
+    },
+    "schema_validation_expectations": {
+      "required_schema_version": "v1",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id"
+      ],
+      "expected_valid_claim": {
+        "diagnosis_code": "E03.9",
+        "schema_version": "v1",
+        "evidence_ids": [
+          "ev_hypothyroid_unspecified_01"
+        ],
+        "reasoning_log_id": "rl_example"
+      },
+      "expected_invalid_claims": [
+        {
+          "label": "wrong_schema_version",
+          "claim": {
+            "diagnosis_code": "E03.9",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_hypothyroid_unspecified_01"
+            ],
+            "reasoning_log_id": "rl_example"
+          }
+        },
+        {
+          "label": "missing_reasoning_log_id",
+          "claim": {
+            "diagnosis_code": "E03.9",
+            "schema_version": "v1",
+            "evidence_ids": [
+              "ev_hypothyroid_unspecified_01"
+            ]
+          }
+        }
+      ]
+    },
+    "search_labels": {
+      "recommended_queries": [
+        "hypothyroidism unspecified",
+        "fatigue thyroid medication"
+      ],
+      "target_code": "E03.9",
+      "accepted_code_family": "E03"
+    },
+    "verification_checkpoints": [
+      {
+        "checkpoint_id": "reveal_target_evidence",
+        "action_type": "QUERY_EHR",
+        "required": true,
+        "expected_module": "medications",
+        "success_criterion": {
+          "revealed_evidence_ids": [
+            "ev_hypothyroid_unspecified_01"
+          ],
+          "ehr_status_after_query": "open_or_exhausted"
+        }
+      },
+      {
+        "checkpoint_id": "search_target_found",
+        "action_type": "SEARCH",
+        "required": true,
+        "success_criterion": {
+          "recommended_queries": [
+            "hypothyroidism unspecified",
+            "fatigue thyroid medication"
+          ],
+          "target_code": "E03.9",
+          "accepted_code_family": "E03"
+        }
+      },
+      {
+        "checkpoint_id": "policy_checked",
+        "action_type": "CHECK_POLICY",
+        "required": true,
+        "success_criterion": {
+          "policy_checked": true,
+          "active_schema_version": "v1"
+        }
+      },
+      {
+        "checkpoint_id": "schema_validated",
+        "action_type": "VALIDATE_CLAIM_SCHEMA",
+        "required": true,
+        "success_criterion": {
+          "required_schema_version": "v1",
+          "required_fields_present": true
+        }
+      },
+      {
+        "checkpoint_id": "reasoning_logged",
+        "action_type": "REASONING_LOG",
+        "required": true,
+        "success_criterion": {
+          "reasoning_verified": true,
+          "cited_evidence_ids": [
+            "ev_hypothyroid_unspecified_01"
+          ]
+        }
+      },
+      {
+        "checkpoint_id": "final_submit_valid",
+        "action_type": "SUBMIT",
+        "required": true,
+        "success_criterion": {
+          "diagnosis_code": "E03.9",
+          "schema_version": "v1",
+          "terminal_correctness": "exact"
+        }
+      }
+    ],
+    "generator_metadata": {
+      "generator_version": "v1",
+      "source_bank": "icd10_mock.json",
+      "seed": 7,
+      "blueprint_slug": "hypothyroid_unspecified"
+    }
+  },
+  {
+    "task_id": "v2_smoke_medium_chest_pain_observation_v1_011",
+    "split": "smoke",
+    "split_tags": {
+      "split": "smoke",
+      "difficulty": "medium",
+      "drift_profile": "no_drift",
+      "schema_version": "v1"
+    },
+    "difficulty": "medium",
+    "patient_note": "Emergency observation visit for chest discomfort with no hidden cardiac infarction evidence.",
+    "target_code": "R07.9",
+    "claim_schema_version": "v1",
+    "terminal_answer_labels": {
+      "target_code": "R07.9",
+      "accepted_code_family": "R07",
+      "accepted_alternatives": []
+    },
+    "ehr_modules": {
+      "encounter_note": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_chest_pain_observation_01",
+            "text": "Observation note documents chest pain without definitive infarction diagnosis.",
+            "supports_codes": [
+              "R07.9"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "note",
+            "module": "encounter_note"
+          }
+        ]
+      },
+      "vitals": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "labs": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_chest_pain_observation_dx_01",
+            "text": "Serial troponins remain within normal range during observation.",
+            "supports_codes": [
+              "R07.9"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": false,
+            "source_type": "lab",
+            "module": "labs"
+          }
+        ]
+      },
+      "medications": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "problem_list": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "procedures": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_chest_pain_observation_02",
+            "text": "Initial ECG review is nondiagnostic for acute MI.",
+            "supports_codes": [
+              "R07.9"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "procedure",
+            "module": "procedures"
+          }
+        ]
+      },
+      "history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "billing_history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "payer_policy": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "clinician_messages": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      }
+    },
+    "target_evidence": [
+      "ev_chest_pain_observation_01",
+      "ev_chest_pain_observation_02"
+    ],
+    "target_evidence_ids": [
+      "ev_chest_pain_observation_01",
+      "ev_chest_pain_observation_02"
+    ],
+    "policy_rules": {
+      "version": "payer_policy_v1",
+      "active_schema_version": "v1",
+      "rules": [
+        {
+          "rule_id": "policy_evidence_required",
+          "description": "A submitted diagnosis claim must cite revealed evidence snippets.",
+          "applies_to_codes": [
+            "R07.9"
+          ],
+          "required_fields": [
+            "evidence_ids"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_reasoning_required",
+          "description": "A submitted diagnosis claim must reference a verified reasoning log.",
+          "applies_to_codes": [
+            "R07.9"
+          ],
+          "required_fields": [
+            "reasoning_log_id"
+          ],
+          "validation_type": "required_field"
+        }
+      ],
+      "claim_schema": {
+        "version": "v1",
+        "required_fields": [
+          "diagnosis_code",
+          "schema_version",
+          "evidence_ids",
+          "reasoning_log_id"
+        ]
+      }
+    },
+    "drift": {
+      "enabled": false,
+      "trigger_step": null,
+      "from_schema_version": "v1",
+      "to_schema_version": null,
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id"
+      ],
+      "expected_adaptation_action": null,
+      "expected_adaptation_criterion": "No adaptation required; schema remains stable."
+    },
+    "schema_validation_expectations": {
+      "required_schema_version": "v1",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id"
+      ],
+      "expected_valid_claim": {
+        "diagnosis_code": "R07.9",
+        "schema_version": "v1",
+        "evidence_ids": [
+          "ev_chest_pain_observation_01",
+          "ev_chest_pain_observation_02"
+        ],
+        "reasoning_log_id": "rl_example"
+      },
+      "expected_invalid_claims": [
+        {
+          "label": "wrong_schema_version",
+          "claim": {
+            "diagnosis_code": "R07.9",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_chest_pain_observation_01",
+              "ev_chest_pain_observation_02"
+            ],
+            "reasoning_log_id": "rl_example"
+          }
+        },
+        {
+          "label": "missing_reasoning_log_id",
+          "claim": {
+            "diagnosis_code": "R07.9",
+            "schema_version": "v1",
+            "evidence_ids": [
+              "ev_chest_pain_observation_01",
+              "ev_chest_pain_observation_02"
+            ]
+          }
+        }
+      ]
+    },
+    "search_labels": {
+      "recommended_queries": [
+        "chest pain unspecified",
+        "observation chest discomfort"
+      ],
+      "target_code": "R07.9",
+      "accepted_code_family": "R07"
+    },
+    "verification_checkpoints": [
+      {
+        "checkpoint_id": "reveal_target_evidence",
+        "action_type": "QUERY_EHR",
+        "required": true,
+        "expected_module": "encounter_note",
+        "success_criterion": {
+          "revealed_evidence_ids": [
+            "ev_chest_pain_observation_01",
+            "ev_chest_pain_observation_02"
+          ],
+          "ehr_status_after_query": "open_or_exhausted"
+        }
+      },
+      {
+        "checkpoint_id": "search_target_found",
+        "action_type": "SEARCH",
+        "required": true,
+        "success_criterion": {
+          "recommended_queries": [
+            "chest pain unspecified",
+            "observation chest discomfort"
+          ],
+          "target_code": "R07.9",
+          "accepted_code_family": "R07"
+        }
+      },
+      {
+        "checkpoint_id": "policy_checked",
+        "action_type": "CHECK_POLICY",
+        "required": true,
+        "success_criterion": {
+          "policy_checked": true,
+          "active_schema_version": "v1"
+        }
+      },
+      {
+        "checkpoint_id": "schema_validated",
+        "action_type": "VALIDATE_CLAIM_SCHEMA",
+        "required": true,
+        "success_criterion": {
+          "required_schema_version": "v1",
+          "required_fields_present": true
+        }
+      },
+      {
+        "checkpoint_id": "reasoning_logged",
+        "action_type": "REASONING_LOG",
+        "required": true,
+        "success_criterion": {
+          "reasoning_verified": true,
+          "cited_evidence_ids": [
+            "ev_chest_pain_observation_01",
+            "ev_chest_pain_observation_02"
+          ]
+        }
+      },
+      {
+        "checkpoint_id": "final_submit_valid",
+        "action_type": "SUBMIT",
+        "required": true,
+        "success_criterion": {
+          "diagnosis_code": "R07.9",
+          "schema_version": "v1",
+          "terminal_correctness": "exact"
+        }
+      }
+    ],
+    "generator_metadata": {
+      "generator_version": "v1",
+      "source_bank": "icd10_mock.json",
+      "seed": 7,
+      "blueprint_slug": "chest_pain_observation"
+    }
+  },
+  {
+    "task_id": "v2_smoke_hard_diabetes_ckd_combo_drift_drift_012",
+    "split": "smoke",
+    "split_tags": {
+      "split": "smoke",
+      "difficulty": "hard",
+      "drift_profile": "drift",
+      "schema_version": "v2"
+    },
+    "difficulty": "hard",
+    "patient_note": "Complex diabetes follow-up with renal involvement and multiple plausible near-neighbor codes.",
+    "target_code": "E11.22",
+    "claim_schema_version": "v1",
+    "terminal_answer_labels": {
+      "target_code": "E11.22",
+      "accepted_code_family": "E11",
+      "accepted_alternatives": []
+    },
+    "ehr_modules": {
+      "encounter_note": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "vitals": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "labs": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_diabetes_ckd_combo_drift_01",
+            "text": "Assessment links diabetic kidney disease to the patient's type 2 diabetes.",
+            "supports_codes": [
+              "E11.22"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "lab",
+            "module": "labs"
+          }
+        ]
+      },
+      "medications": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_diabetes_ckd_combo_drift_dx_01",
+            "text": "Medication profile includes intensified diabetes treatment for chronic control issues.",
+            "supports_codes": [
+              "E11.65"
+            ],
+            "contradicts_codes": [
+              "E11.22"
+            ],
+            "required_for_grounding": false,
+            "source_type": "medication",
+            "module": "medications"
+          }
+        ]
+      },
+      "problem_list": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_diabetes_ckd_combo_drift_02",
+            "text": "Problem list explicitly states diabetic chronic kidney disease.",
+            "supports_codes": [
+              "E11.22"
+            ],
+            "contradicts_codes": [],
+            "required_for_grounding": true,
+            "source_type": "problem_list",
+            "module": "problem_list"
+          }
+        ]
+      },
+      "procedures": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "history": {
+        "status": "closed",
+        "query_budget": 1,
+        "evidence": [
+          {
+            "evidence_id": "ev_diabetes_ckd_combo_drift_dx_02",
+            "text": "Separate note lists chronic kidney disease stage 3 as a coexisting condition.",
+            "supports_codes": [
+              "N18.3"
+            ],
+            "contradicts_codes": [
+              "E11.22"
+            ],
+            "required_for_grounding": false,
+            "source_type": "history",
+            "module": "history"
+          }
+        ]
+      },
+      "billing_history": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "payer_policy": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      },
+      "clinician_messages": {
+        "status": "closed",
+        "query_budget": 0,
+        "evidence": []
+      }
+    },
+    "target_evidence": [
+      "ev_diabetes_ckd_combo_drift_01",
+      "ev_diabetes_ckd_combo_drift_02"
+    ],
+    "target_evidence_ids": [
+      "ev_diabetes_ckd_combo_drift_01",
+      "ev_diabetes_ckd_combo_drift_02"
+    ],
+    "policy_rules": {
+      "version": "payer_policy_v1",
+      "active_schema_version": "v1",
+      "rules": [
+        {
+          "rule_id": "policy_evidence_required",
+          "description": "A submitted diagnosis claim must cite revealed evidence snippets.",
+          "applies_to_codes": [
+            "E11.22"
+          ],
+          "required_fields": [
+            "evidence_ids"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_reasoning_required",
+          "description": "A submitted diagnosis claim must reference a verified reasoning log.",
+          "applies_to_codes": [
+            "E11.22"
+          ],
+          "required_fields": [
+            "reasoning_log_id"
+          ],
+          "validation_type": "required_field"
+        },
+        {
+          "rule_id": "policy_attestation_required",
+          "description": "Post-drift claims must include a non-empty policy attestation.",
+          "applies_to_codes": [
+            "E11.22"
+          ],
+          "required_fields": [
+            "policy_attestations"
+          ],
+          "validation_type": "required_field"
+        }
+      ],
+      "claim_schema": {
+        "version": "v1",
+        "required_fields": [
+          "diagnosis_code",
+          "schema_version",
+          "evidence_ids",
+          "reasoning_log_id"
+        ]
+      }
+    },
+    "drift": {
+      "enabled": true,
+      "trigger_step": 2,
+      "from_schema_version": "v1",
+      "to_schema_version": "v2",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id",
+        "policy_attestations"
+      ],
+      "expected_adaptation_action": "VALIDATE_CLAIM_SCHEMA",
+      "expected_adaptation_criterion": "After drift, the agent must validate and submit using the post-drift schema version v2 with all required fields present."
+    },
+    "schema_validation_expectations": {
+      "required_schema_version": "v2",
+      "required_fields": [
+        "diagnosis_code",
+        "schema_version",
+        "evidence_ids",
+        "reasoning_log_id",
+        "policy_attestations"
+      ],
+      "expected_valid_claim": {
+        "diagnosis_code": "E11.22",
+        "schema_version": "v2",
+        "evidence_ids": [
+          "ev_diabetes_ckd_combo_drift_01",
+          "ev_diabetes_ckd_combo_drift_02"
+        ],
+        "reasoning_log_id": "rl_example",
+        "policy_attestations": [
+          "policy_attestation_required"
+        ]
+      },
+      "expected_invalid_claims": [
+        {
+          "label": "wrong_schema_version",
+          "claim": {
+            "diagnosis_code": "E11.22",
+            "schema_version": "v1",
+            "evidence_ids": [
+              "ev_diabetes_ckd_combo_drift_01",
+              "ev_diabetes_ckd_combo_drift_02"
+            ],
+            "reasoning_log_id": "rl_example",
+            "policy_attestations": [
+              "policy_attestation_required"
+            ]
+          }
+        },
+        {
+          "label": "missing_reasoning_log_id",
+          "claim": {
+            "diagnosis_code": "E11.22",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_diabetes_ckd_combo_drift_01",
+              "ev_diabetes_ckd_combo_drift_02"
+            ],
+            "policy_attestations": [
+              "policy_attestation_required"
+            ]
+          }
+        },
+        {
+          "label": "missing_policy_attestations",
+          "claim": {
+            "diagnosis_code": "E11.22",
+            "schema_version": "v2",
+            "evidence_ids": [
+              "ev_diabetes_ckd_combo_drift_01",
+              "ev_diabetes_ckd_combo_drift_02"
+            ],
+            "reasoning_log_id": "rl_example"
+          }
+        }
+      ]
+    },
+    "search_labels": {
+      "recommended_queries": [
+        "diabetes chronic kidney disease",
+        "diabetic ckd"
+      ],
+      "target_code": "E11.22",
+      "accepted_code_family": "E11"
+    },
+    "verification_checkpoints": [
+      {
+        "checkpoint_id": "reveal_target_evidence",
+        "action_type": "QUERY_EHR",
+        "required": true,
+        "expected_module": "labs",
+        "success_criterion": {
+          "revealed_evidence_ids": [
+            "ev_diabetes_ckd_combo_drift_01",
+            "ev_diabetes_ckd_combo_drift_02"
+          ],
+          "ehr_status_after_query": "open_or_exhausted"
+        }
+      },
+      {
+        "checkpoint_id": "search_target_found",
+        "action_type": "SEARCH",
+        "required": true,
+        "success_criterion": {
+          "recommended_queries": [
+            "diabetes chronic kidney disease",
+            "diabetic ckd"
+          ],
+          "target_code": "E11.22",
+          "accepted_code_family": "E11"
+        }
+      },
+      {
+        "checkpoint_id": "policy_checked",
+        "action_type": "CHECK_POLICY",
+        "required": true,
+        "success_criterion": {
+          "policy_checked": true,
+          "active_schema_version": "v1"
+        }
+      },
+      {
+        "checkpoint_id": "schema_validated",
+        "action_type": "VALIDATE_CLAIM_SCHEMA",
+        "required": true,
+        "success_criterion": {
+          "required_schema_version": "v2",
+          "required_fields_present": true
+        }
+      },
+      {
+        "checkpoint_id": "reasoning_logged",
+        "action_type": "REASONING_LOG",
+        "required": true,
+        "success_criterion": {
+          "reasoning_verified": true,
+          "cited_evidence_ids": [
+            "ev_diabetes_ckd_combo_drift_01",
+            "ev_diabetes_ckd_combo_drift_02"
+          ]
+        }
+      },
+      {
+        "checkpoint_id": "final_submit_valid",
+        "action_type": "SUBMIT",
+        "required": true,
+        "success_criterion": {
+          "diagnosis_code": "E11.22",
+          "schema_version": "v2",
+          "terminal_correctness": "exact"
+        }
+      }
+    ],
+    "generator_metadata": {
+      "generator_version": "v1",
+      "source_bank": "icd10_mock.json",
+      "seed": 7,
+      "blueprint_slug": "diabetes_ckd_combo_drift"
+    }
+  }
+]
