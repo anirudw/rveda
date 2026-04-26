@@ -13,13 +13,20 @@ Generated cases must conform to the Task 0.1 schema:
 ```json
 {
   "task_id": "string",
+  "split": "train",
+  "split_tags": {},
   "difficulty": "easy",
+  "patient_note": "string",
   "target_code": "string",
   "claim_schema_version": "v1",
+  "terminal_answer_labels": {},
   "ehr_modules": {},
   "target_evidence": [],
+  "target_evidence_ids": [],
   "policy_rules": {},
   "drift": {},
+  "schema_validation_expectations": {},
+  "search_labels": {},
   "verification_checkpoints": []
 }
 ```
@@ -34,6 +41,15 @@ The generator must produce cases that can be verified through the frozen action 
 - `SUBMIT_CLAIM`
 
 Every generated case should include enough metadata for deterministic checks of evidence reveal, code search, policy validation, reasoning grounding, and terminal claim correctness.
+
+Stable supervision fields required by the training and observability pipeline:
+
+- `target_evidence_ids`: canonical evidence snippets required for true Grounding F1.
+- `drift.expected_adaptation_action` and `drift.expected_adaptation_criterion`: stable drift labels for adaptation-rate metrics.
+- `schema_validation_expectations`: required schema version, required fields, and canonical valid/invalid draft claims.
+- `terminal_answer_labels`: target code, accepted family, and accepted alternatives.
+- `verification_checkpoints`: action-level verifier milestones for reward plots and debugging.
+- `split` and `split_tags`: stable dataset split, difficulty, drift profile, and schema-version tags.
 
 ## 3. Round 2 Data Compliance
 

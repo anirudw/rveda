@@ -225,13 +225,20 @@ Each V2 task must be a structured object.
 ```json
 {
   "task_id": "string",
+  "split": "train",
+  "split_tags": {},
   "difficulty": "easy",
+  "patient_note": "string",
   "target_code": "string",
   "claim_schema_version": "v1",
+  "terminal_answer_labels": {},
   "ehr_modules": {},
   "target_evidence": [],
+  "target_evidence_ids": [],
   "policy_rules": {},
   "drift": {},
+  "schema_validation_expectations": {},
+  "search_labels": {},
   "verification_checkpoints": []
 }
 ```
@@ -239,13 +246,20 @@ Each V2 task must be a structured object.
 Fields:
 
 - `task_id`: required stable task identifier.
+- `split`: required dataset split label, such as `train`, `eval`, or `smoke`.
+- `split_tags`: required stable tags including split, difficulty, drift profile, and schema version.
 - `difficulty`: required difficulty label, such as `easy`, `medium`, or `hard`.
+- `patient_note`: required initial visible note that should not expose all decisive evidence.
 - `target_code`: required ICD target code for verifier use only.
 - `claim_schema_version`: required starting schema version.
+- `terminal_answer_labels`: required terminal-answer metadata including target code, accepted family, and accepted alternatives.
 - `ehr_modules`: required object keyed by module name. Each module contains hidden evidence snippets and query limits.
 - `target_evidence`: required list of evidence IDs needed to ground the correct claim.
+- `target_evidence_ids`: required stable alias for canonical grounding evidence used by training metrics such as Grounding F1.
 - `policy_rules`: required object containing schema and payer rules.
-- `drift`: required object. For no-drift tasks, use an explicit disabled config.
+- `drift`: required object. For no-drift tasks, use an explicit disabled config. When drift is enabled, include trigger step, source schema, target schema, and expected adaptation metadata.
+- `schema_validation_expectations`: required object containing the required schema version, required fields, and canonical valid/invalid draft-claim examples.
+- `search_labels`: required object containing recommended queries and accepted target-family retrieval labels for diagnostics.
 - `verification_checkpoints`: required list of machine-checkable checkpoint definitions for Task 0.1 examples and verifier tests.
 
 Example no-drift config:

@@ -67,6 +67,8 @@ class RvedaEnv(
         }
         if action.module is not None:
             payload["module"] = action.module
+        if action.payload is not None:
+            payload["payload"] = action.payload.model_dump(exclude_none=True)
         return payload
 
     def _parse_result(self, payload: Dict) -> StepResult[MedicalObservation]:
@@ -88,6 +90,11 @@ class RvedaEnv(
             grading=obs_data.get("grading", {}),
             ehr_map=obs_data.get("ehr_map", {}),
             revealed_evidence=obs_data.get("revealed_evidence", []),
+            policy_state=obs_data.get("policy_state", {}),
+            drift_notice=obs_data.get("drift_notice"),
+            reasoning_log=obs_data.get("reasoning_log"),
+            reasoning_log_verified=obs_data.get("reasoning_log_verified", False),
+            reward_metrics=obs_data.get("reward_metrics", {}),
             last_error=obs_data.get("last_error"),
             invalid_reason=obs_data.get("invalid_reason"),
             done=payload.get("done", False),

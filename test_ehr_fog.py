@@ -138,6 +138,7 @@ def test_inference_parser_accepts_query_ehr_with_module() -> None:
         "action_type": "QUERY_EHR",
         "module": "encounter_note",
         "query": "BMI",
+        "payload": None,
     }
 
 

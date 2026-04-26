@@ -37,9 +37,9 @@ V1_REQUIRED_FIELDS = [
 V2_REQUIRED_FIELDS = [*V1_REQUIRED_FIELDS, "policy_attestations"]
 
 DEFAULT_SPLIT_PLAN = {
-    "train": {"easy": 10, "medium": 8, "hard": 6},
-    "eval": {"easy": 4, "medium": 3, "hard": 3},
-    "smoke": {"easy": 2, "medium": 1, "hard": 1},
+    "train": {"easy": 2, "medium": 2, "hard": 2},
+    "eval": {"easy": 1, "medium": 1, "hard": 1},
+    "smoke": {"easy": 1, "medium": 1, "hard": 1},
 }
 
 CASE_BLUEPRINTS: dict[str, list[dict[str, Any]]] = {
@@ -790,6 +790,7 @@ def _task_path(output_dir: Path, task: dict[str, Any]) -> Path:
 def write_generated_cases(
     *,
     output_dir: Path,
+    output_path: Path | None = None,
     seed: int = 7,
     bank_path: Path | None = None,
     split_plan: dict[str, dict[str, int]] | None = None,
@@ -824,6 +825,9 @@ def write_generated_cases(
         json.dumps(manifest, indent=2) + "\n",
         encoding="utf-8",
     )
+    if output_path is not None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(json.dumps(tasks, indent=2) + "\n", encoding="utf-8")
     return tasks
 
 
@@ -838,6 +842,11 @@ def _parse_split_plan(args: argparse.Namespace) -> dict[str, dict[str, int]]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate deterministic synthetic V2 task files.")
     parser.add_argument("--output-dir", type=Path, default=Path("examples"), help="Directory for generated tasks.")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="Optional aggregate JSON-array output for compatibility with earlier generator usage.",
+    )
     parser.add_argument("--seed", type=int, default=7, help="Deterministic generation seed.")
     parser.add_argument("--bank", type=Path, default=Path("icd10_mock.json"), help="ICD candidate bank JSON file.")
     parser.add_argument("--clean", action="store_true", help="Delete old generated v2_task_*.json files first.")
@@ -854,6 +863,7 @@ def main() -> None:
 
     tasks = write_generated_cases(
         output_dir=args.output_dir,
+        output_path=args.output,
         seed=args.seed,
         bank_path=args.bank,
         split_plan=_parse_split_plan(args),

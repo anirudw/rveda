@@ -1,8 +1,21 @@
 {
   "task_id": "v2_easy_overweight_schema_v1",
+  "split": "smoke",
+  "split_tags": {
+    "split": "smoke",
+    "difficulty": "easy",
+    "drift_profile": "no_drift",
+    "schema_version": "v1"
+  },
   "difficulty": "easy",
+  "patient_note": "",
   "target_code": "E66.3",
   "claim_schema_version": "v1",
+  "terminal_answer_labels": {
+    "target_code": "E66.3",
+    "accepted_code_family": "E66",
+    "accepted_alternatives": []
+  },
   "ehr_modules": {
     "encounter_note": {
       "status": "closed",
@@ -11,12 +24,17 @@
         {
           "evidence_id": "ev_encounter_bmi_001",
           "text": "Routine checkup documents BMI 27 with diet and exercise counseling for weight management.",
-          "supports_codes": ["E66.3"]
+          "supports_codes": ["E66.3"],
+          "contradicts_codes": [],
+          "required_for_grounding": true,
+          "source_type": "note",
+          "module": "encounter_note"
         }
       ]
     }
   },
   "target_evidence": ["ev_encounter_bmi_001"],
+  "target_evidence_ids": ["ev_encounter_bmi_001"],
   "policy_rules": {
     "version": "payer_policy_v1",
     "active_schema_version": "v1",
@@ -40,32 +58,124 @@
     "enabled": false,
     "trigger_step": null,
     "from_schema_version": "v1",
-    "to_schema_version": null
+    "to_schema_version": null,
+    "required_fields": [
+      "diagnosis_code",
+      "schema_version",
+      "evidence_ids",
+      "reasoning_log_id"
+    ],
+    "expected_adaptation_action": null,
+    "expected_adaptation_criterion": "No adaptation required; schema remains stable."
+  },
+  "schema_validation_expectations": {
+    "required_schema_version": "v1",
+    "required_fields": [
+      "diagnosis_code",
+      "schema_version",
+      "evidence_ids",
+      "reasoning_log_id"
+    ],
+    "expected_valid_claim": {
+      "diagnosis_code": "E66.3",
+      "schema_version": "v1",
+      "evidence_ids": ["ev_encounter_bmi_001"],
+      "reasoning_log_id": "rl_example"
+    },
+    "expected_invalid_claims": [
+      {
+        "label": "wrong_schema_version",
+        "claim": {
+          "diagnosis_code": "E66.3",
+          "schema_version": "v2",
+          "evidence_ids": ["ev_encounter_bmi_001"],
+          "reasoning_log_id": "rl_example"
+        }
+      },
+      {
+        "label": "missing_reasoning_log_id",
+        "claim": {
+          "diagnosis_code": "E66.3",
+          "schema_version": "v1",
+          "evidence_ids": ["ev_encounter_bmi_001"]
+        }
+      }
+    ]
+  },
+  "search_labels": {
+    "recommended_queries": [
+      "overweight bmi counseling",
+      "bmi 27 weight management"
+    ],
+    "target_code": "E66.3",
+    "accepted_code_family": "E66"
   },
   "verification_checkpoints": [
     {
-      "checkpoint": "ehr_query",
-      "assertion": "QUERY_EHR(module='encounter_note') reveals ev_encounter_bmi_001 and updates ehr_map.encounter_note.status."
+      "checkpoint_id": "reveal_target_evidence",
+      "action_type": "QUERY_EHR",
+      "required": true,
+      "expected_module": "encounter_note",
+      "success_criterion": {
+        "revealed_evidence_ids": ["ev_encounter_bmi_001"],
+        "ehr_status_after_query": "open_or_exhausted"
+      }
     },
     {
-      "checkpoint": "icd_search",
-      "assertion": "SEARCH_ICD with an overweight or BMI query returns E66.3 in search_results."
+      "checkpoint_id": "search_target_found",
+      "action_type": "SEARCH",
+      "required": true,
+      "success_criterion": {
+        "recommended_queries": [
+          "overweight bmi counseling",
+          "bmi 27 weight management"
+        ],
+        "target_code": "E66.3",
+        "accepted_code_family": "E66"
+      }
     },
     {
-      "checkpoint": "policy_check",
-      "assertion": "CHECK_POLICY reveals payer_policy_v1 and active_schema_version v1."
+      "checkpoint_id": "policy_checked",
+      "action_type": "CHECK_POLICY",
+      "required": true,
+      "success_criterion": {
+        "policy_checked": true,
+        "active_schema_version": "v1"
+      }
     },
     {
-      "checkpoint": "schema_validation",
-      "assertion": "VALIDATE_CLAIM_SCHEMA accepts a draft claim containing diagnosis_code, schema_version, evidence_ids, and reasoning_log_id."
+      "checkpoint_id": "schema_validated",
+      "action_type": "VALIDATE_CLAIM_SCHEMA",
+      "required": true,
+      "success_criterion": {
+        "required_schema_version": "v1",
+        "required_fields_present": true
+      }
     },
     {
-      "checkpoint": "reasoning_log",
-      "assertion": "REASONING_LOG cites ev_encounter_bmi_001 for candidate_code E66.3."
+      "checkpoint_id": "reasoning_logged",
+      "action_type": "REASONING_LOG",
+      "required": true,
+      "success_criterion": {
+        "reasoning_verified": true,
+        "cited_evidence_ids": ["ev_encounter_bmi_001"]
+      }
     },
     {
-      "checkpoint": "submit_claim",
-      "assertion": "SUBMIT_CLAIM with diagnosis_code E66.3, schema_version v1, and evidence ev_encounter_bmi_001 receives exact-code terminal credit."
+      "checkpoint_id": "final_submit_valid",
+      "action_type": "SUBMIT",
+      "required": true,
+      "success_criterion": {
+        "diagnosis_code": "E66.3",
+        "schema_version": "v1",
+        "terminal_correctness": "exact"
+      }
     }
-  ]
+  ],
+  "generator_metadata": {
+    "generator_version": "v1",
+    "source_bank": "icd10_mock.json",
+    "seed": 7,
+    "blueprint_slug": "overweight_counseling"
+  }
 }
