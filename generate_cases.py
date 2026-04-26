@@ -559,6 +559,52 @@ def _build_checkpoints(
     ]
 
 
+def _build_current_runtime_path(
+    *,
+    target_module: str,
+    target_code: str,
+    target_evidence_ids: list[str],
+    search_terms: list[str],
+    target_evidence_specs: list[dict[str, Any]],
+    code_index: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    ehr_queries = []
+    for evidence_spec in target_evidence_specs:
+        text = str(evidence_spec.get("text", ""))
+        words = [word.strip(".,;:()").lower() for word in text.split()]
+        useful_words = [
+            word
+            for word in words
+            if len(word) >= 4 and word not in {"with", "from", "that", "this", "patient"}
+        ]
+        if useful_words:
+            ehr_queries.append(" ".join(useful_words[:2]))
+    if not ehr_queries:
+        ehr_queries = list(search_terms[:1]) or [target_code]
+
+    code_row = code_index.get(target_code, {})
+    search_queries = [
+        str(code_row.get("short_desc", "")).strip(),
+        str(code_row.get("long_desc", "")).strip(),
+        *list(search_terms),
+    ]
+    search_queries = [query for query in search_queries if query]
+
+    return {
+        "supported_actions": ["QUERY_EHR", "SEARCH", "DETAILS", "SUBMIT"],
+        "recommended_ehr_modules": [target_module],
+        "recommended_ehr_queries": ehr_queries,
+        "recommended_search_queries": search_queries,
+        "expected_details_code": target_code,
+        "expected_submit_code": target_code,
+        "target_evidence_ids": list(target_evidence_ids),
+        "notes": (
+            "Current trainer/runtime compatibility path. Policy, schema, reasoning, and drift metadata are retained "
+            "for future V2 actions but are not required to receive current smoke rewards."
+        ),
+    }
+
+
 def _case_plan_items(split_plan: dict[str, dict[str, int]]) -> list[tuple[str, str]]:
     items: list[tuple[str, str]] = []
     for split in ("train", "eval", "smoke"):
@@ -636,6 +682,8 @@ def _build_task(
         f"v2_task_{split}_{difficulty}_{blueprint['slug']}_"
         f"{'drift' if drift_enabled else final_schema_version}_{sequence_index:03d}"
     )
+    target_module = str(blueprint["target_evidence"][0]["module"])
+    search_terms = list(blueprint.get("search_terms", []))
     return {
         "task_id": task_id,
         "split": split,
@@ -666,14 +714,22 @@ def _build_task(
             target_evidence_ids,
         ),
         "search_labels": {
-            "recommended_queries": list(blueprint.get("search_terms", [])),
+            "recommended_queries": search_terms,
             "target_code": target_code,
             "accepted_code_family": _family(target_code),
         },
-        "verification_checkpoints": _build_checkpoints(
-            target_module=str(blueprint["target_evidence"][0]["module"]),
+        "current_runtime_path": _build_current_runtime_path(
+            target_module=target_module,
+            target_code=target_code,
             target_evidence_ids=target_evidence_ids,
-            search_terms=list(blueprint.get("search_terms", [])),
+            search_terms=search_terms,
+            target_evidence_specs=list(blueprint.get("target_evidence", [])),
+            code_index=code_index,
+        ),
+        "verification_checkpoints": _build_checkpoints(
+            target_module=target_module,
+            target_evidence_ids=target_evidence_ids,
+            search_terms=search_terms,
             policy_schema_version=starting_schema_version,
             submit_schema_version=final_schema_version,
             target_code=target_code,

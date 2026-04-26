@@ -20,6 +20,15 @@ def test_generate_cases_are_deterministic_and_training_ready(tmp_path: Path) -> 
     assert sample["target_evidence_ids"]
     assert sample["target_evidence"] == sample["target_evidence_ids"]
     assert sample["ehr_modules"]
+    assert sample["current_runtime_path"]["supported_actions"] == [
+        "QUERY_EHR",
+        "SEARCH",
+        "DETAILS",
+        "SUBMIT",
+    ]
+    assert sample["current_runtime_path"]["recommended_ehr_queries"]
+    assert sample["current_runtime_path"]["recommended_search_queries"]
+    assert sample["current_runtime_path"]["expected_submit_code"] == sample["target_code"]
     assert sample["schema_validation_expectations"]["expected_valid_claim"]
     assert sample["verification_checkpoints"]
 

@@ -197,13 +197,30 @@ def extract_json_object(text: str) -> dict[str, Any] | None:
 
 
 def default_action_for_observation(observation, task_id: str) -> dict[str, Any]:
+    runtime_path = observation.metadata.get("current_runtime_path")
+    target_modules = (
+        set(str(module) for module in runtime_path.get("recommended_ehr_modules", []))
+        if isinstance(runtime_path, dict)
+        else set()
+    )
     if observation.ehr_map:
         for module_name, module_state in observation.ehr_map.items():
+            if target_modules and module_name not in target_modules:
+                continue
             if module_state.query_budget_remaining > 0 and module_state.revealed_count == 0:
+                ehr_queries = (
+                    runtime_path.get("recommended_ehr_queries", [])
+                    if isinstance(runtime_path, dict)
+                    else []
+                )
                 return {
                     "action_type": "QUERY_EHR",
                     "module": module_name,
-                    "query": SAFE_EHR_QUERY_BY_TASK.get(task_id, "BMI weight"),
+                    "query": (
+                        str(ehr_queries[0])
+                        if ehr_queries
+                        else SAFE_EHR_QUERY_BY_TASK.get(task_id, "BMI weight")
+                    ),
                 }
 
     if observation.search_results:
@@ -217,9 +234,18 @@ def default_action_for_observation(observation, task_id: str) -> dict[str, Any]:
             "query": observation.search_results[0].code,
         }
 
+    search_queries = (
+        runtime_path.get("recommended_search_queries", [])
+        if isinstance(runtime_path, dict)
+        else []
+    )
     return {
         "action_type": "SEARCH",
-        "query": SAFE_SEARCH_BY_TASK.get(task_id, "weight"),
+        "query": (
+            str(search_queries[0])
+            if search_queries
+            else SAFE_SEARCH_BY_TASK.get(task_id, "weight")
+        ),
     }
 
 

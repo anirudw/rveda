@@ -395,6 +395,12 @@ class RvedaEnvironment(Environment):
         grading: GradingTrace | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> MedicalObservation:
+        observation_metadata = dict(metadata or {})
+        if self._current_task and isinstance(self._current_task.get("current_runtime_path"), dict):
+            observation_metadata.setdefault(
+                "current_runtime_path",
+                self._current_task["current_runtime_path"],
+            )
         return MedicalObservation(
             patient_note=self._patient_note,
             search_results=self._search_results,
@@ -407,7 +413,7 @@ class RvedaEnvironment(Environment):
             revealed_evidence=list(self._revealed_evidence.values()),
             last_error=self._last_error,
             invalid_reason=self._invalid_reason,
-            metadata=metadata or {},
+            metadata=observation_metadata,
         )
 
     def _invalid_observation(
