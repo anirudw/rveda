@@ -87,6 +87,9 @@ def test_generate_cases_are_current_runtime_trainable() -> None:
             "QUERY_EHR",
             "SEARCH",
             "DETAILS",
+            "CHECK_POLICY",
+            "VALIDATE_CLAIM_SCHEMA",
+            "REASONING_LOG",
             "SUBMIT",
         ]
         assert runtime_path["recommended_ehr_modules"]

@@ -563,6 +563,7 @@ def _build_current_runtime_path(
     *,
     target_module: str,
     target_code: str,
+    final_schema_version: str,
     target_evidence_ids: list[str],
     search_terms: list[str],
     target_evidence_specs: list[dict[str, Any]],
@@ -591,12 +592,21 @@ def _build_current_runtime_path(
     search_queries = [query for query in search_queries if query]
 
     return {
-        "supported_actions": ["QUERY_EHR", "SEARCH", "DETAILS", "SUBMIT"],
+        "supported_actions": [
+            "QUERY_EHR",
+            "SEARCH",
+            "DETAILS",
+            "CHECK_POLICY",
+            "VALIDATE_CLAIM_SCHEMA",
+            "REASONING_LOG",
+            "SUBMIT",
+        ],
         "recommended_ehr_modules": [target_module],
         "recommended_ehr_queries": ehr_queries,
         "recommended_search_queries": search_queries,
         "expected_details_code": target_code,
         "expected_submit_code": target_code,
+        "expected_schema_version": final_schema_version,
         "target_evidence_ids": list(target_evidence_ids),
         "notes": (
             "Current trainer/runtime compatibility path. Policy, schema, reasoning, and drift metadata are retained "
@@ -725,6 +735,7 @@ def _build_task(
             search_terms=search_terms,
             target_evidence_specs=list(blueprint.get("target_evidence", [])),
             code_index=code_index,
+            final_schema_version=final_schema_version,
         ),
         "verification_checkpoints": _build_checkpoints(
             target_module=target_module,
