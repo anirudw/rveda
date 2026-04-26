@@ -6,7 +6,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from trl_bridge import RvedaTrainingBridge
+from rveda.trl_bridge import RvedaTrainingBridge
 
 
 V2_TASK_ID = "v2_easy_overweight_schema_v1"

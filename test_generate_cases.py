@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from generate_cases import MODULE_KEYS, generate_cases, write_generated_cases
-from server.rveda_environment import RvedaEnvironment
+from rveda.generate_cases import MODULE_KEYS, generate_cases, write_generated_cases
+from rveda.server.rveda_environment import RvedaEnvironment
 
 
 def test_generate_cases_emits_expected_supervised_fields() -> None:

@@ -4,9 +4,9 @@ import json
 
 from starlette.testclient import TestClient
 
-from models import MedicalAction, MedicalActionType
-from server.app import app
-from server.rveda_environment import RvedaEnvironment
+from rveda.models import MedicalAction, MedicalActionType
+from rveda.server.app import app
+from rveda.server.rveda_environment import RvedaEnvironment
 
 
 SENSITIVE_REWARD_COMPONENT_KEYS = {

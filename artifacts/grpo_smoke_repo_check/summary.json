@@ -1,0 +1,18 @@
+{
+  "mode": "baseline_only",
+  "model_name": "Qwen/Qwen2.5-7B-Instruct",
+  "smoke_model": null,
+  "task_ids": [
+    "v2_easy_overweight_schema_v1"
+  ],
+  "baseline_mean_total_reward": 0.15000000000000002,
+  "baseline_rollout_summary": {
+    "episode_count": 1,
+    "nonzero_reward_rate": 1.0,
+    "mean_total_reward": 0.15000000000000002
+  },
+  "saved_files": [
+    "command_metadata.json",
+    "scripted_baseline.json"
+  ]
+}

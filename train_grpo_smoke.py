@@ -26,7 +26,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from trl_bridge import BridgeStep, RolloutTrace, RvedaTrainingBridge
+try:
+    from .trl_bridge import BridgeStep, RolloutTrace, RvedaTrainingBridge
+except ImportError:
+    from trl_bridge import BridgeStep, RolloutTrace, RvedaTrainingBridge
 
 
 QWEN25_7B_MODEL = "Qwen/Qwen2.5-7B-Instruct"
@@ -76,6 +79,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--train-steps", type=int, default=2, help="Max GRPO optimization steps.")
     parser.add_argument("--max-new-tokens", type=int, default=96, help="Generation cap for action JSON.")
     parser.add_argument("--skip-train", action="store_true", help="Only run the live env baseline smoke.")
+    parser.add_argument(
+        "--disable-unsloth-fast-rl",
+        action="store_true",
+        help="Skip Unsloth's GRPO patch and use the plain TRL trainer path.",
+    )
     parser.add_argument(
         "--emit-observability-only",
         action="store_true",
@@ -129,6 +137,7 @@ def build_command_metadata(args: argparse.Namespace, output_dir: Path) -> dict[s
         "train_steps": args.train_steps,
         "max_new_tokens": args.max_new_tokens,
         "skip_train": args.skip_train,
+        "disable_unsloth_fast_rl": args.disable_unsloth_fast_rl,
         "emit_observability_only": args.emit_observability_only,
         "expected_artifacts": [
             "command_metadata.json",
@@ -171,6 +180,7 @@ def save_failed_attempt_summary(
             "model_name": args.model_name,
             "smoke_model": args.smoke_model,
             "task_ids": args.task_ids,
+            "disable_unsloth_fast_rl": args.disable_unsloth_fast_rl,
             "baseline_mean_total_reward": baseline["mean_total_reward"],
             "baseline_rollout_summary": baseline["rollout_summary"],
             "error_type": type(exc).__name__,
@@ -253,6 +263,25 @@ def _claim_payload(observation, runtime_path: Any, *, include_reasoning_log: boo
     return payload
 
 
+def _candidate_code_from_observation(observation, runtime_path: Any) -> str:
+    target_code = _target_code_from_runtime(runtime_path)
+    if target_code:
+        return target_code
+    if observation.search_results:
+        return str(observation.search_results[0].code).strip()
+    return ""
+
+
+def _visible_policy_rule_ids(observation) -> list[str]:
+    policy_state = getattr(observation, "policy_state", None)
+    visible_rules = getattr(policy_state, "rules", []) or []
+    return [
+        str(rule.rule_id).strip()
+        for rule in visible_rules
+        if getattr(rule, "rule_id", None) and str(rule.rule_id).strip()
+    ]
+
+
 def _first_query(value: Any) -> str:
     if isinstance(value, str):
         return value
@@ -302,29 +331,24 @@ def default_action_for_observation(observation, task_id: str) -> dict[str, Any]:
                 "action_type": "DETAILS",
                 "query": observation.search_results[0].code,
             }
-        target_code = _target_code_from_runtime(runtime_path)
+        target_code = _candidate_code_from_observation(observation, runtime_path)
         if target_code:
             policy_state = getattr(observation, "policy_state", None)
             policy_checked = bool(getattr(policy_state, "checked", False))
             if not policy_checked:
                 return {"action_type": "CHECK_POLICY", "query": ""}
-            if not getattr(observation, "reasoning_log_verified", False):
-                return {
-                    "action_type": "REASONING_LOG",
-                    "query": "",
-                    "payload": {
-                        "candidate_code": target_code,
-                        "rationale": "Synthetic smoke policy cites revealed evidence and ICD detail.",
-                        "evidence_ids": _latest_revealed_evidence_ids(observation),
-                        "policy_rule_ids": ["policy_evidence_required"],
-                    },
-                }
             validation_just_passed = (
                 observation.grading.action_type == "VALIDATE_CLAIM_SCHEMA"
                 and observation.last_error is None
                 and observation.invalid_reason is None
             )
-            if not validation_just_passed:
+            validation_failed = (
+                observation.grading.action_type == "VALIDATE_CLAIM_SCHEMA"
+                and (observation.last_error is not None or observation.invalid_reason is not None)
+            )
+            if validation_failed or (
+                getattr(observation, "reasoning_log", None) is None and not validation_just_passed
+            ):
                 return {
                     "action_type": "VALIDATE_CLAIM_SCHEMA",
                     "query": "",
@@ -333,6 +357,17 @@ def default_action_for_observation(observation, task_id: str) -> dict[str, Any]:
                         runtime_path,
                         include_reasoning_log=True,
                     ),
+                }
+            if not getattr(observation, "reasoning_log_verified", False):
+                return {
+                    "action_type": "REASONING_LOG",
+                    "query": "",
+                    "payload": {
+                        "candidate_code": target_code,
+                        "rationale": "Synthetic smoke policy cites revealed evidence and ICD detail.",
+                        "evidence_ids": _latest_revealed_evidence_ids(observation),
+                        "policy_rule_ids": _visible_policy_rule_ids(observation),
+                    },
                 }
         return {
             "action_type": "SUBMIT",
@@ -844,14 +879,16 @@ def emit_observability_artifacts(output_dir: Path) -> dict[str, Any]:
     return comparison
 
 
-def require_training_stack():
+def require_training_stack(*, enable_unsloth_fast_rl: bool):
     try:
         import torch  # noqa: F401
         from datasets import Dataset  # noqa: F401
         from unsloth import FastLanguageModel  # noqa: F401
-        from unsloth import PatchFastRL  # noqa: F401
 
-        PatchFastRL(FastLanguageModel)
+        if enable_unsloth_fast_rl:
+            from unsloth import PatchFastRL  # noqa: F401
+
+            PatchFastRL(FastLanguageModel)
         from trl import GRPOConfig, GRPOTrainer  # noqa: F401
     except Exception as exc:  # pragma: no cover - exercised only when optional deps are missing
         raise RuntimeError(
@@ -958,14 +995,18 @@ def evaluate_model_policy(
 
 
 def run_grpo_smoke_train(args: argparse.Namespace, output_dir: Path) -> dict[str, Any]:
-    require_training_stack()
+    enable_unsloth_fast_rl = not args.disable_unsloth_fast_rl
+    require_training_stack(enable_unsloth_fast_rl=enable_unsloth_fast_rl)
 
     import torch
     from datasets import Dataset
-    from unsloth import FastLanguageModel, PatchFastRL
+    from unsloth import FastLanguageModel
     from trl import GRPOConfig, GRPOTrainer
 
-    PatchFastRL(FastLanguageModel)
+    if enable_unsloth_fast_rl:
+        from unsloth import PatchFastRL
+
+        PatchFastRL(FastLanguageModel)
 
     train_rows = build_train_rows(args.task_ids, args.samples_per_task)
     save_json(output_dir / "train_rows_preview.json", train_rows[: min(4, len(train_rows))])
@@ -1009,7 +1050,15 @@ def run_grpo_smoke_train(args: argparse.Namespace, output_dir: Path) -> dict[str
         train_dataset=train_dataset,
         processing_class=tokenizer,
     )
-    train_output = trainer.train()
+    try:
+        train_output = trainer.train()
+    except TypeError as exc:
+        if enable_unsloth_fast_rl and "grpo_accumulated_loss()" in str(exc):
+            raise RuntimeError(
+                "Unsloth FastRL patch is incompatible with the installed TRL/Unsloth build. "
+                "Re-run with --disable-unsloth-fast-rl."
+            ) from exc
+        raise
     trainer_log_history = list(getattr(getattr(trainer, "state", None), "log_history", []) or [])
     save_json(output_dir / "trainer_log_history.json", trainer_log_history)
     trainer.save_model(str(output_dir / "model"))
@@ -1031,6 +1080,7 @@ def run_grpo_smoke_train(args: argparse.Namespace, output_dir: Path) -> dict[str
         "task_ids": args.task_ids,
         "train_rows": len(train_rows),
         "train_steps": args.train_steps,
+        "disable_unsloth_fast_rl": args.disable_unsloth_fast_rl,
         "baseline_mean_total_reward": baseline_eval["mean_total_reward"],
         "post_train_mean_total_reward": trained_eval["mean_total_reward"],
         "baseline_rollout_summary": baseline_eval["rollout_summary"],
@@ -1069,6 +1119,7 @@ def main() -> None:
                 "model_name": args.model_name,
                 "smoke_model": args.smoke_model,
                 "task_ids": args.task_ids,
+                "disable_unsloth_fast_rl": args.disable_unsloth_fast_rl,
                 "baseline_mean_total_reward": baseline["mean_total_reward"],
                 "baseline_rollout_summary": baseline["rollout_summary"],
                 "saved_files": ["command_metadata.json", "scripted_baseline.json"],

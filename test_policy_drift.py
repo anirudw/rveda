@@ -2,11 +2,11 @@
 
 from copy import deepcopy
 
-from client import RvedaEnv
-from inference import parse_action_or_fallback
-from models import ClaimDraftPayload, MedicalAction, MedicalActionType, ReasoningLogPayload
-from server.policy_engine import PolicyEngine
-from server.rveda_environment import RvedaEnvironment
+from rveda.client import RvedaEnv
+from rveda.inference import parse_action_or_fallback
+from rveda.models import ClaimDraftPayload, MedicalAction, MedicalActionType, ReasoningLogPayload
+from rveda.server.policy_engine import PolicyEngine
+from rveda.server.rveda_environment import RvedaEnvironment
 
 
 def test_policy_engine_reset_and_check_policy() -> None:

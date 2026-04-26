@@ -1,0 +1,226 @@
+{
+  "policy": "scripted_baseline",
+  "task_ids": [
+    "v2_easy_overweight_schema_v1"
+  ],
+  "episodes": [
+    {
+      "task_id": "v2_easy_overweight_schema_v1",
+      "done": false,
+      "total_reward": 0.05,
+      "steps": [
+        {
+          "action": null,
+          "reward": 0.0,
+          "done": false,
+          "info": {
+            "episode_id": "f90f3d30-4bcd-492f-bf23-cba537f4f09e",
+            "step_count": 0,
+            "task_id": "",
+            "last_error": null,
+            "invalid_reason": null,
+            "metadata": {},
+            "v2_verifier_snapshot": {
+              "fallback_reward": 0.0,
+              "training_reward": 0.02,
+              "grounding_proxy": 0.0,
+              "evidence_count": 0.0,
+              "search_result_count": 0.0,
+              "module_count": 1.0,
+              "invalid_flag": 0.0,
+              "vetted_before_submit_rate": 1.0,
+              "evidence_to_submission_ratio": 0.0,
+              "module_valid": 1.0
+            }
+          },
+          "observation": {
+            "done": false,
+            "reward": 0.0,
+            "metadata": {},
+            "patient_note": "",
+            "search_results": [],
+            "detailed_info": "",
+            "current_reward": 0.0,
+            "grading": {
+              "action_type": "",
+              "grader": "",
+              "difficulty": "",
+              "step": 0,
+              "task_id": "",
+              "reward": 0.0,
+              "reward_components": {},
+              "search_history": [],
+              "code_history": [],
+              "last_search_codes": [],
+              "excludes1_conflict_seen": false
+            },
+            "ehr_map": {
+              "encounter_note": {
+                "status": "closed",
+                "query_budget_remaining": 1,
+                "revealed_count": 0
+              }
+            },
+            "revealed_evidence": [],
+            "policy_state": {
+              "checked": false,
+              "policy_version": "",
+              "active_schema_version": "",
+              "rules": [],
+              "claim_schema": {
+                "version": "",
+                "required_fields": []
+              }
+            },
+            "drift_notice": null,
+            "reasoning_log": null,
+            "reasoning_log_verified": false,
+            "reward_metrics": {
+              "terminal_correctness": 0.0,
+              "evidence_grounding": 0.0,
+              "schema_compliance": 0.0,
+              "format_validity": 0.0,
+              "process_discipline": 0.0,
+              "drift_adaptation": 0.0,
+              "final": 0.0
+            },
+            "last_error": null,
+            "invalid_reason": null
+          }
+        },
+        {
+          "action": {
+            "action_type": "QUERY_EHR",
+            "query": "BMI weight",
+            "module": "encounter_note",
+            "payload": null
+          },
+          "reward": 0.05,
+          "done": false,
+          "info": {
+            "episode_id": "f90f3d30-4bcd-492f-bf23-cba537f4f09e",
+            "step_count": 1,
+            "task_id": "v2_easy_overweight_schema_v1",
+            "last_error": null,
+            "invalid_reason": null,
+            "metadata": {
+              "query": "BMI weight",
+              "module": "encounter_note",
+              "step": 1,
+              "excludes1_penalty": false,
+              "timed_out": false
+            },
+            "v2_verifier_snapshot": {
+              "fallback_reward": 0.0,
+              "training_reward": 0.07,
+              "grounding_proxy": 1.0,
+              "evidence_count": 1.0,
+              "search_result_count": 0.0,
+              "module_count": 1.0,
+              "invalid_flag": 0.0,
+              "vetted_before_submit_rate": 1.0,
+              "evidence_to_submission_ratio": 1.0,
+              "module_valid": 1.0
+            }
+          },
+          "observation": {
+            "done": false,
+            "reward": 0.05,
+            "metadata": {
+              "query": "BMI weight",
+              "module": "encounter_note",
+              "step": 1,
+              "excludes1_penalty": false,
+              "timed_out": false
+            },
+            "patient_note": "",
+            "search_results": [],
+            "detailed_info": "QUERY_EHR revealed 1 evidence snippet(s) from encounter_note.",
+            "current_reward": 0.05,
+            "grading": {
+              "action_type": "QUERY_EHR",
+              "grader": "easy_grader",
+              "difficulty": "easy",
+              "step": 1,
+              "task_id": "v2_easy_overweight_schema_v1",
+              "reward": 0.05,
+              "reward_components": {
+                "base": 0.0,
+                "evidence_revealed": 1.0,
+                "query_budget_remaining": 0.0,
+                "final": 0.03
+              },
+              "search_history": [],
+              "code_history": [],
+              "last_search_codes": [],
+              "excludes1_conflict_seen": false
+            },
+            "ehr_map": {
+              "encounter_note": {
+                "status": "exhausted",
+                "query_budget_remaining": 0,
+                "revealed_count": 1
+              }
+            },
+            "revealed_evidence": [
+              {
+                "evidence_id": "ev_encounter_bmi_001",
+                "module": "encounter_note",
+                "text": "Routine checkup documents BMI 27 with diet and exercise counseling for weight management.",
+                "supports_codes": [
+                  "E66.3"
+                ],
+                "metadata": {
+                  "contradicts_codes": [],
+                  "required_for_grounding": true,
+                  "source_type": "note",
+                  "module": "encounter_note"
+                }
+              }
+            ],
+            "policy_state": {
+              "checked": false,
+              "policy_version": "",
+              "active_schema_version": "",
+              "rules": [],
+              "claim_schema": {
+                "version": "",
+                "required_fields": []
+              }
+            },
+            "drift_notice": null,
+            "reasoning_log": null,
+            "reasoning_log_verified": false,
+            "reward_metrics": {
+              "terminal_correctness": 0.0,
+              "evidence_grounding": 0.0,
+              "schema_compliance": 0.0,
+              "format_validity": 1.0,
+              "process_discipline": 1.0,
+              "drift_adaptation": 1.0,
+              "final": 0.05
+            },
+            "last_error": null,
+            "invalid_reason": null
+          }
+        }
+      ],
+      "summary": {
+        "episode_length": 1,
+        "nonzero_reward_steps": 1,
+        "submission_steps": 0,
+        "evidence_steps": 1,
+        "mean_step_reward": 0.05,
+        "max_step_reward": 0.05,
+        "min_step_reward": 0.05,
+        "final_done": false
+      }
+    }
+  ],
+  "mean_total_reward": 0.05,
+  "rollout_summary": {
+    "episode_count": 1,
+    "nonzero_reward_rate": 1.0,
+    "mean_total_reward": 0.05
+  }
+}

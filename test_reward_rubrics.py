@@ -2,9 +2,9 @@
 
 from copy import deepcopy
 
-from client import RvedaEnv
-from models import MedicalAction, MedicalActionType
-from server.rveda_environment import RvedaEnvironment
+from rveda.client import RvedaEnv
+from rveda.models import MedicalAction, MedicalActionType
+from rveda.server.rveda_environment import RvedaEnvironment
 
 
 def test_reward_metrics_are_exposed_on_submit() -> None:
@@ -31,7 +31,7 @@ def test_exact_submit_dominates_family_submit() -> None:
     exact = env.step(MedicalAction(action_type=MedicalActionType.SUBMIT, query="E66.3")).reward
 
     env.reset(task_id="easy_endo_1")
-    family = env.step(MedicalAction(action_type=MedicalActionType.SUBMIT, query="E66.9")).reward
+    family = env.step(MedicalAction(action_type=MedicalActionType.SUBMIT, query="E66.01")).reward
 
     assert exact > family
     assert exact > 0.0

@@ -1,16 +1,16 @@
 """Smoke tests for the V2 EHR Fog-of-War slice."""
 
-from client import RvedaEnv
-from inference import parse_action_or_fallback
-from models import MedicalAction, MedicalActionType
-from server.rveda_environment import RvedaEnvironment
+from rveda.client import RvedaEnv
+from rveda.inference import parse_action_or_fallback
+from rveda.models import MedicalAction, MedicalActionType
+from rveda.server.rveda_environment import RvedaEnvironment
 
 
 def test_query_ehr_reveals_hidden_evidence() -> None:
     env = RvedaEnvironment()
     initial_observation = env.reset(task_id="v2_easy_overweight_schema_v1")
 
-    assert initial_observation.patient_note == ""
+    assert "diet and exercise counseling" in initial_observation.patient_note
     assert initial_observation.ehr_map["encounter_note"].status == "closed"
     assert initial_observation.revealed_evidence == []
 

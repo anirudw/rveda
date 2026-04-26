@@ -55,8 +55,12 @@ load_dotenv()
 
 from openai import OpenAI
 
-from models import MedicalAction as RvedaAction
-from client import RvedaEnv
+try:
+    from .client import RvedaEnv
+    from .models import MedicalAction as RvedaAction
+except ImportError:
+    from client import RvedaEnv
+    from models import MedicalAction as RvedaAction
 
 IMAGE_NAME = os.getenv("IMAGE_NAME") # If you are using docker image
 API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
@@ -330,6 +334,7 @@ async def run_task_episode(client: OpenAI, env: RvedaEnv, task_id: str) -> None:
     score = OPEN_SCORE_MIN
     success = False
     terminated_without_submit = False
+    terminal_correctness = 0.0
 
     log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
 
@@ -359,6 +364,9 @@ async def run_task_episode(client: OpenAI, env: RvedaEnv, task_id: str) -> None:
             done = bool(result.done)
             error = getattr(obs, "last_error", None)
             final_action_type = getattr(getattr(obs, "grading", None), "action_type", "")
+            terminal_correctness = float(
+                getattr(getattr(obs, "reward_metrics", None), "terminal_correctness", 0.0) or 0.0
+            )
 
             rewards.append(reward)
             steps_taken = step
@@ -414,7 +422,7 @@ async def run_task_episode(client: OpenAI, env: RvedaEnv, task_id: str) -> None:
         else:
             raw_score = sum(rewards) / MAX_TOTAL_REWARD if MAX_TOTAL_REWARD > 0 else 0.0
             score = normalize_score(raw_score)
-            success = score >= SUCCESS_SCORE_THRESHOLD
+            success = terminal_correctness > 0.0 and score >= SUCCESS_SCORE_THRESHOLD
 
     except Exception:
         success = False

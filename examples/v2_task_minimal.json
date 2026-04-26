@@ -8,7 +8,7 @@
     "schema_version": "v1"
   },
   "difficulty": "easy",
-  "patient_note": "",
+  "patient_note": "Routine outpatient follow-up with diet and exercise counseling documented, but the decisive coding evidence remains in the hidden chart.",
   "target_code": "E66.3",
   "claim_schema_version": "v1",
   "terminal_answer_labels": {
@@ -109,6 +109,39 @@
     ],
     "target_code": "E66.3",
     "accepted_code_family": "E66"
+  },
+  "current_runtime_path": {
+    "supported_actions": [
+      "QUERY_EHR",
+      "SEARCH",
+      "DETAILS",
+      "CHECK_POLICY",
+      "VALIDATE_CLAIM_SCHEMA",
+      "REASONING_LOG",
+      "SUBMIT"
+    ],
+    "recommended_ehr_modules": [
+      "encounter_note"
+    ],
+    "recommended_ehr_queries": [
+      "routine checkup documents"
+    ],
+    "recommended_ehr_queries_by_module": {
+      "encounter_note": "routine checkup documents"
+    },
+    "recommended_search_queries": [
+      "Overweight",
+      "Overweight, BMI 25.0 to 29.9.",
+      "overweight bmi counseling",
+      "bmi 27 weight management"
+    ],
+    "expected_details_code": "E66.3",
+    "expected_submit_code": "E66.3",
+    "expected_schema_version": "v1",
+    "target_evidence_ids": [
+      "ev_encounter_bmi_001"
+    ],
+    "notes": "Current trainer/runtime compatibility path. Policy, schema, reasoning, and drift metadata are retained for future V2 actions."
   },
   "verification_checkpoints": [
     {

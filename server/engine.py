@@ -3,13 +3,28 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = ROOT_DIR / "data" / "icd10.db"
 DATA_PATH = ROOT_DIR / "icd10_mock.json"
+
+
+def _default_db_path() -> Path:
+    env_path = os.getenv("RVEDA_DB_PATH")
+    if env_path:
+        return Path(env_path)
+
+    codex_memory_root = Path.home() / ".codex" / "memories"
+    if codex_memory_root.exists():
+        return codex_memory_root / "rveda" / "icd10.db"
+
+    return ROOT_DIR / "data" / "icd10.db"
+
+
+DB_PATH = _default_db_path()
 
 
 def _conn_has_rows(conn: sqlite3.Connection) -> bool:
