@@ -9,10 +9,16 @@ from rveda.server.policy_engine import PolicyEngine
 from rveda.server.rveda_environment import RvedaEnvironment
 
 
+def _minimal_v2_task(env: RvedaEnvironment) -> dict:
+    return next(
+        task for task in env._v2_tasks if task["task_id"] == "v2_easy_overweight_schema_v1"
+    )
+
+
 def test_policy_engine_reset_and_check_policy() -> None:
     env = RvedaEnvironment()
     engine = PolicyEngine()
-    engine.reset(env._v2_example_tasks[0])
+    engine.reset(_minimal_v2_task(env))
 
     assert engine.policy_state().checked is False
 
@@ -27,7 +33,7 @@ def test_policy_engine_reset_and_check_policy() -> None:
 
 def test_policy_engine_drift_and_validation() -> None:
     env = RvedaEnvironment()
-    drift_task = deepcopy(env._v2_example_tasks[0])
+    drift_task = deepcopy(_minimal_v2_task(env))
     drift_task["drift"] = {
         "enabled": True,
         "trigger_step": 1,
@@ -379,7 +385,7 @@ def test_submit_rejects_reasoning_log_candidate_mismatch() -> None:
 
 def test_drift_notice_surfaces_when_schema_changes_mid_episode() -> None:
     env = RvedaEnvironment()
-    drift_task = deepcopy(env._v2_example_tasks[0])
+    drift_task = deepcopy(_minimal_v2_task(env))
     drift_task["task_id"] = "v2_policy_drift_test"
     drift_task["drift"] = {
         "enabled": True,

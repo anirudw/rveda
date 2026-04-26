@@ -7,6 +7,12 @@ from rveda.models import MedicalAction, MedicalActionType
 from rveda.server.rveda_environment import RvedaEnvironment
 
 
+def _minimal_v2_task(env: RvedaEnvironment) -> dict:
+    return next(
+        task for task in env._v2_tasks if task["task_id"] == "v2_easy_overweight_schema_v1"
+    )
+
+
 def test_reward_metrics_are_exposed_on_submit() -> None:
     env = RvedaEnvironment()
     env.reset(task_id="easy_endo_1")
@@ -85,7 +91,7 @@ def test_client_parse_result_preserves_reward_metrics() -> None:
 
 def test_drift_adaptation_requires_post_drift_schema_validation() -> None:
     env = RvedaEnvironment()
-    drift_task = deepcopy(env._v2_example_tasks[0])
+    drift_task = deepcopy(_minimal_v2_task(env))
     drift_task["task_id"] = "v2_drift_reward_missing_validation"
     drift_task["drift"] = {
         "enabled": True,
@@ -123,7 +129,7 @@ def test_drift_adaptation_requires_post_drift_schema_validation() -> None:
 
 def test_drift_adaptation_rewards_validated_post_drift_submit() -> None:
     env = RvedaEnvironment()
-    drift_task = deepcopy(env._v2_example_tasks[0])
+    drift_task = deepcopy(_minimal_v2_task(env))
     drift_task["task_id"] = "v2_drift_reward_validated_submit"
     drift_task["drift"] = {
         "enabled": True,
