@@ -37,6 +37,25 @@ Rveda V2 is planned as **Revenue Cycle Drift Arena**, a Round 2 professional-tas
 
 The default runtime remains the Round 1 medical-coding environment. The repository now includes a minimal V2 slice behind the explicit task ID `v2_easy_overweight_schema_v1`: hidden EHR modules, `QUERY_EHR`, `ehr_map`, revealed evidence, `CHECK_POLICY`, `VALIDATE_CLAIM_SCHEMA`, visible `policy_state`, schema-drift notices, `REASONING_LOG`, and grounding-gated submit behavior are implemented. Later V2 mechanics such as structured claim submission remain unimplemented.
 
+## Training Path
+
+The judge-facing training path is intentionally small-model first so it can be rerun in Colab instead of depending on one large-model attempt.
+
+- Generated V2 Colab launcher: [`train_generated_v2_grpo_launcher.ipynb`](train_generated_v2_grpo_launcher.ipynb)
+- Smoke Colab launcher: [`train_grpo_smoke_launcher.ipynb`](train_grpo_smoke_launcher.ipynb)
+- Training runner: [`train_grpo_smoke.py`](train_grpo_smoke.py)
+
+Recommended order:
+
+1. Sync the repo in Colab.
+2. Run `python -m pytest -q`.
+3. Run `openenv validate`.
+4. Start with the tiny `Qwen/Qwen2.5-1.5B-Instruct` preset and plain TRL fallback.
+5. Confirm that the run produces `summary.json`, `baseline_model_eval.json`, `post_train_model_eval.json`, `loss_plot.svg`, `reward_plot.svg`, and `verifier_metrics_plot.svg`.
+6. Scale to larger presets only after the small-model run is stable.
+
+The README already links the active Hugging Face Space. When the external mini-blog, short video, or slide deck is ready, add those public URLs here rather than committing large media files into the repo.
+
 ## Why Rveda
 
 Medical coding sits inside a much larger operational and financial surface area. A UC San Diego and *Health Affairs* analysis projected that aggressive diagnostic coding intensity could drive [more than $200 billion in Medicare overpayments over a decade](https://www.sciencedaily.com/releases/2017/02/170207092727.htm). A recent Zinnov industry report similarly projects U.S. healthcare revenue cycle management spend to reach [USD 200-210 billion by 2029](https://zinnov.com/centers-of-excellence/the-200-billion-question-why-the-future-of-healthcare-rcm-may-belong-to-india) as billing workflows become more fragmented and administratively heavy. Those figures do not imply that a lightweight benchmark solves the full problem, but they do show why coding behavior is not a harmless toy task: inaccurate, over-aggressive, or weakly verified coding decisions can scale into real financial and operational damage.

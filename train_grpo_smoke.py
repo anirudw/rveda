@@ -10,8 +10,8 @@ Local environment-only smoke:
     python train_grpo_smoke.py --skip-train
 
 Colab / GPU smoke training:
-    pip install torch datasets accelerate trl unsloth
-    python train_grpo_smoke.py --model-name Qwen/Qwen2.5-7B-Instruct
+    pip install torch datasets accelerate trl unsloth peft bitsandbytes
+    python train_grpo_smoke.py --smoke-model qwen2.5-1.5b --disable-unsloth-fast-rl
     python train_grpo_smoke.py --smoke-model qwen2.5-14b --task-ids v2_easy_overweight_schema_v1 --samples-per-task 1 --episodes 1 --train-steps 1 --max-episode-steps 1 --max-new-tokens 32
 """
 
@@ -32,9 +32,11 @@ except ImportError:
     from trl_bridge import BridgeStep, RolloutTrace, RvedaTrainingBridge
 
 
+QWEN25_1P5B_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
 QWEN25_7B_MODEL = "Qwen/Qwen2.5-7B-Instruct"
 QWEN25_14B_MODEL = "Qwen/Qwen2.5-14B-Instruct"
 DEFAULT_OUTPUT_DIR = "artifacts/grpo_smoke"
+QWEN25_1P5B_OUTPUT_DIR = "artifacts/grpo_smoke_qwen25_1p5b"
 QWEN25_14B_OUTPUT_DIR = "artifacts/grpo_smoke_qwen25_14b"
 DEFAULT_TASK_IDS = ["easy_endo_1"]
 ACTION_TYPES = {
@@ -66,11 +68,11 @@ SAFE_EHR_QUERY_BY_TASK = {
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Minimal live GRPO smoke runner for Rveda.")
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR, help="Directory for JSON outputs.")
-    parser.add_argument("--model-name", default=QWEN25_7B_MODEL, help="Base model for smoke GRPO.")
+    parser.add_argument("--model-name", default=QWEN25_1P5B_MODEL, help="Base model for smoke GRPO.")
     parser.add_argument(
         "--smoke-model",
-        choices=["qwen2.5-7b", "qwen2.5-14b"],
-        help="Named smoke preset. The 14B preset writes to a dedicated artifact folder unless --output-dir is set.",
+        choices=["qwen2.5-1.5b", "qwen2.5-7b", "qwen2.5-14b"],
+        help="Named smoke preset. Smaller presets default to lighter Colab-friendly artifact folders.",
     )
     parser.add_argument("--task-ids", nargs="+", default=DEFAULT_TASK_IDS, help="Task ids used for smoke train/eval.")
     parser.add_argument("--samples-per-task", type=int, default=4, help="Number of prompt rows per task.")
@@ -90,7 +92,11 @@ def parse_args() -> argparse.Namespace:
         help="Regenerate comparison JSON and plots from an existing completed output directory.",
     )
     args = parser.parse_args()
-    if args.smoke_model == "qwen2.5-7b":
+    if args.smoke_model == "qwen2.5-1.5b":
+        args.model_name = QWEN25_1P5B_MODEL
+        if args.output_dir == DEFAULT_OUTPUT_DIR:
+            args.output_dir = QWEN25_1P5B_OUTPUT_DIR
+    elif args.smoke_model == "qwen2.5-7b":
         args.model_name = QWEN25_7B_MODEL
     elif args.smoke_model == "qwen2.5-14b":
         args.model_name = QWEN25_14B_MODEL

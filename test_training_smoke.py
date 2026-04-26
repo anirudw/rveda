@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import sys
 import tempfile
 from pathlib import Path
 
 from rveda.trl_bridge import RvedaTrainingBridge
+from rveda import train_grpo_smoke
 
 
 V2_TASK_ID = "v2_easy_overweight_schema_v1"
@@ -78,6 +80,19 @@ def test_training_bridge_smoke_rollouts_are_distinguishable(tmp_path: Path) -> N
     assert baseline_saved["steps"]
     assert smoke_trained_saved["steps"]
     assert baseline_saved != smoke_trained_saved
+
+
+def test_small_smoke_model_preset_prefers_1p5b_and_output_dir(monkeypatch) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["train_grpo_smoke.py", "--smoke-model", "qwen2.5-1.5b"],
+    )
+
+    args = train_grpo_smoke.parse_args()
+
+    assert args.model_name == train_grpo_smoke.QWEN25_1P5B_MODEL
+    assert args.output_dir == train_grpo_smoke.QWEN25_1P5B_OUTPUT_DIR
 
 
 def main() -> None:
