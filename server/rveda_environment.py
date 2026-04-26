@@ -142,6 +142,7 @@ class RvedaEnvironment(Environment):
         self._state = State(episode_id=str(uuid4()), step_count=0)
         self._tasks = self._load_tasks()
         self._v2_tasks = self._load_v2_tasks()
+        self._v2_example_tasks = self._v2_tasks
         self._all_tasks = [*self._tasks, *self._v2_tasks]
         self._current_task: dict[str, Any] | None = None
         self._patient_note = ""
@@ -434,6 +435,12 @@ class RvedaEnvironment(Environment):
         grading: GradingTrace | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> MedicalObservation:
+        observation_metadata = dict(metadata or {})
+        if self._current_task and isinstance(self._current_task.get("current_runtime_path"), dict):
+            observation_metadata.setdefault(
+                "current_runtime_path",
+                self._current_task["current_runtime_path"],
+            )
         return MedicalObservation(
             patient_note=self._patient_note,
             search_results=self._search_results,
@@ -451,7 +458,7 @@ class RvedaEnvironment(Environment):
             reward_metrics=self._reward_metrics or RewardMetrics(),
             last_error=self._last_error,
             invalid_reason=self._invalid_reason,
-            metadata=metadata or {},
+            metadata=observation_metadata,
         )
 
     def _invalid_observation(
@@ -697,7 +704,7 @@ class RvedaEnvironment(Environment):
             episode_id=episode_id if episode_id is not None else str(uuid4()),
             step_count=0,
         )
-        selectable_tasks = self._all_tasks if self._all_tasks else self._tasks
+        selectable_tasks = [*self._tasks, *self._v2_tasks]
         if task_id is None:
             task_selector = random if seed is None else random.Random(seed)
             self._current_task = task_selector.choice(selectable_tasks)

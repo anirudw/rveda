@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from generate_cases import MODULE_KEYS, generate_cases
+import json
+from pathlib import Path
+
+from generate_cases import MODULE_KEYS, generate_cases, write_generated_cases
 from server.rveda_environment import RvedaEnvironment
 
 
@@ -75,10 +78,38 @@ def test_drift_and_schema_expectations_are_consistent() -> None:
         assert task["claim_schema_version"] == schema_expectations["required_schema_version"]
 
 
+def test_generate_cases_are_current_runtime_trainable() -> None:
+    tasks = generate_cases(seed=7)
+
+    for task in tasks:
+        runtime_path = task["current_runtime_path"]
+        assert runtime_path["supported_actions"] == [
+            "QUERY_EHR",
+            "SEARCH",
+            "DETAILS",
+            "SUBMIT",
+        ]
+        assert runtime_path["recommended_ehr_modules"]
+        assert runtime_path["recommended_ehr_queries"]
+        assert runtime_path["recommended_search_queries"]
+        assert runtime_path["expected_submit_code"] == task["target_code"]
+
+
+def test_write_generated_cases_emits_loader_ready_files(tmp_path: Path) -> None:
+    written = write_generated_cases(output_dir=tmp_path, seed=7)
+    paths = sorted(tmp_path.glob("v2_task_*.json"))
+
+    assert len(paths) == len(written)
+    assert (tmp_path / "synthetic_cases_manifest.json").exists()
+
+    loaded = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
+    assert {task["task_id"] for task in loaded} == {task["task_id"] for task in written}
+
+
 def test_generated_task_pack_is_visible_to_environment_loader() -> None:
     env = RvedaEnvironment()
 
-    loaded_task_ids = {task["task_id"] for task in env._v2_example_tasks}
+    loaded_task_ids = {task["task_id"] for task in env._v2_tasks}
 
     assert "v2_easy_overweight_schema_v1" in loaded_task_ids
-    assert any(task_id.startswith("v2_train_") for task_id in loaded_task_ids)
+    assert any(task_id.startswith("v2_train_") or task_id.startswith("v2_task_train_") for task_id in loaded_task_ids)

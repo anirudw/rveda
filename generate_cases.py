@@ -1,4 +1,9 @@
-"""Deterministic synthetic V2 case generator for Sprint 3 Task 3.1."""
+"""Deterministic synthetic V2 case generator for Rveda.
+
+The runtime environment loads V2 tasks from ``examples/v2_task*.json`` and
+expects each file to contain one task object. This generator writes that shape
+directly so generated cases are immediately available to smoke training.
+"""
 
 from __future__ import annotations
 
@@ -8,6 +13,7 @@ import random
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
+
 
 MODULE_KEYS = [
     "encounter_note",
@@ -49,10 +55,7 @@ CASE_BLUEPRINTS: dict[str, list[dict[str, Any]]] = {
             "target_evidence": [
                 {
                     "module": "encounter_note",
-                    "text": (
-                        "Routine checkup documents BMI 27 with diet and exercise counseling "
-                        "for weight management."
-                    ),
+                    "text": "Routine checkup documents BMI 27 with diet and exercise counseling for weight management.",
                     "source_type": "note",
                 }
             ],
@@ -69,8 +72,8 @@ CASE_BLUEPRINTS: dict[str, list[dict[str, Any]]] = {
             "slug": "hashimoto_confirmation",
             "target_code": "E06.3",
             "visible_note": (
-                "Endocrinology follow-up for fatigue and thyroid symptoms. "
-                "Hidden labs and problem list determine the most specific code."
+                "Endocrinology follow-up for fatigue and thyroid symptoms. Hidden labs and problem list determine "
+                "the most specific code."
             ),
             "search_terms": ["hashimoto tpo antibodies", "autoimmune thyroiditis"],
             "target_evidence": [
@@ -93,8 +96,8 @@ CASE_BLUEPRINTS: dict[str, list[dict[str, Any]]] = {
             "slug": "hypothyroid_unspecified",
             "target_code": "E03.9",
             "visible_note": (
-                "Primary care visit for chronic fatigue; specific autoimmune confirmation is absent "
-                "unless the agent over-reads distractors."
+                "Primary care visit for chronic fatigue; specific autoimmune confirmation is absent unless the "
+                "agent over-reads distractors."
             ),
             "search_terms": ["hypothyroidism unspecified", "fatigue thyroid medication"],
             "target_evidence": [
@@ -121,8 +124,8 @@ CASE_BLUEPRINTS: dict[str, list[dict[str, Any]]] = {
             "starting_schema_version": "v1",
             "drift_to_schema_version": "v2",
             "visible_note": (
-                "Diabetes follow-up with medication reconciliation completed. "
-                "The glucose evidence and post-drift claim requirements must be checked explicitly."
+                "Diabetes follow-up with medication reconciliation completed. The glucose evidence and post-drift "
+                "claim requirements must be checked explicitly."
             ),
             "search_terms": ["type 2 diabetes hyperglycemia", "poorly controlled blood sugar"],
             "target_evidence": [
@@ -151,8 +154,8 @@ CASE_BLUEPRINTS: dict[str, list[dict[str, Any]]] = {
             "target_code": "N18.3",
             "starting_schema_version": "v2",
             "visible_note": (
-                "Nephrology follow-up references chronic kidney disease progression, "
-                "but stage confirmation is hidden in the chart."
+                "Nephrology follow-up references chronic kidney disease progression, but stage confirmation is "
+                "hidden in the chart."
             ),
             "search_terms": ["chronic kidney disease stage 3", "moderate ckd"],
             "target_evidence": [
@@ -180,9 +183,7 @@ CASE_BLUEPRINTS: dict[str, list[dict[str, Any]]] = {
             "slug": "chest_pain_observation",
             "target_code": "R07.9",
             "starting_schema_version": "v1",
-            "visible_note": (
-                "Emergency observation visit for chest discomfort with no hidden cardiac infarction evidence."
-            ),
+            "visible_note": "Emergency observation visit for chest discomfort with no hidden cardiac infarction evidence.",
             "search_terms": ["chest pain unspecified", "observation chest discomfort"],
             "target_evidence": [
                 {
@@ -213,8 +214,8 @@ CASE_BLUEPRINTS: dict[str, list[dict[str, Any]]] = {
             "starting_schema_version": "v1",
             "drift_to_schema_version": "v2",
             "visible_note": (
-                "Emergency cardiac admission requires coordinated evidence, policy re-check, "
-                "and a post-drift valid claim."
+                "Emergency cardiac admission requires coordinated evidence, policy re-check, and a post-drift "
+                "valid claim."
             ),
             "search_terms": ["acute myocardial infarction", "heart attack troponin ekg"],
             "target_evidence": [
@@ -254,9 +255,7 @@ CASE_BLUEPRINTS: dict[str, list[dict[str, Any]]] = {
             "target_code": "E11.22",
             "starting_schema_version": "v1",
             "drift_to_schema_version": "v2",
-            "visible_note": (
-                "Complex diabetes follow-up with renal involvement and multiple plausible near-neighbor codes."
-            ),
+            "visible_note": "Complex diabetes follow-up with renal involvement and multiple plausible near-neighbor codes.",
             "search_terms": ["diabetes chronic kidney disease", "diabetic ckd"],
             "target_evidence": [
                 {
@@ -290,9 +289,7 @@ CASE_BLUEPRINTS: dict[str, list[dict[str, Any]]] = {
             "target_code": "E66.01",
             "starting_schema_version": "v1",
             "drift_to_schema_version": "v2",
-            "visible_note": (
-                "Longitudinal obesity-management case with payer-rule drift and competing obesity-family codes."
-            ),
+            "visible_note": "Longitudinal obesity-management case with payer-rule drift and competing obesity-family codes.",
             "search_terms": ["morbid obesity excess calories", "severe obesity counseling"],
             "target_evidence": [
                 {
@@ -331,6 +328,8 @@ def _family(code: str) -> str:
 
 def _load_icd_index(bank_path: Path) -> dict[str, dict[str, Any]]:
     rows = json.loads(bank_path.read_text(encoding="utf-8"))
+    if not isinstance(rows, list):
+        raise ValueError(f"ICD bank must be a list of rows: {bank_path}")
     return {str(row["code"]): dict(row) for row in rows}
 
 
@@ -358,21 +357,16 @@ def _build_evidence(
 ) -> dict[str, Any]:
     return {
         "evidence_id": evidence_id,
+        "module": module,
         "text": text,
         "supports_codes": supports_codes,
         "contradicts_codes": contradicts_codes or [],
         "required_for_grounding": required_for_grounding,
         "source_type": source_type,
-        "module": module,
     }
 
 
-def _build_policy_rules(
-    *,
-    target_code: str,
-    schema_version: str,
-    drift_enabled: bool,
-) -> dict[str, Any]:
+def _build_policy_rules(target_code: str, schema_version: str, drift_enabled: bool) -> dict[str, Any]:
     rules = [
         {
             "rule_id": "policy_evidence_required",
@@ -412,7 +406,6 @@ def _build_policy_rules(
 
 
 def _build_claim_example(
-    *,
     target_code: str,
     schema_version: str,
     target_evidence_ids: list[str],
@@ -430,7 +423,6 @@ def _build_claim_example(
 
 
 def _build_schema_expectations(
-    *,
     target_code: str,
     required_schema_version: str,
     required_fields: list[str],
@@ -438,38 +430,24 @@ def _build_schema_expectations(
 ) -> dict[str, Any]:
     require_attestation = "policy_attestations" in required_fields
     valid_claim = _build_claim_example(
-        target_code=target_code,
-        schema_version=required_schema_version,
-        target_evidence_ids=target_evidence_ids,
-        require_policy_attestation=require_attestation,
+        target_code,
+        required_schema_version,
+        target_evidence_ids,
+        require_attestation,
     )
     wrong_version = "v1" if required_schema_version == "v2" else "v2"
     invalid_examples = [
-        {
-            "label": "wrong_schema_version",
-            "claim": {
-                **valid_claim,
-                "schema_version": wrong_version,
-            },
-        },
+        {"label": "wrong_schema_version", "claim": {**valid_claim, "schema_version": wrong_version}},
         {
             "label": "missing_reasoning_log_id",
-            "claim": {
-                key: value
-                for key, value in valid_claim.items()
-                if key != "reasoning_log_id"
-            },
+            "claim": {key: value for key, value in valid_claim.items() if key != "reasoning_log_id"},
         },
     ]
     if require_attestation:
         invalid_examples.append(
             {
                 "label": "missing_policy_attestations",
-                "claim": {
-                    key: value
-                    for key, value in valid_claim.items()
-                    if key != "policy_attestations"
-                },
+                "claim": {key: value for key, value in valid_claim.items() if key != "policy_attestations"},
             }
         )
     return {
@@ -581,11 +559,58 @@ def _build_checkpoints(
     ]
 
 
-def _case_plan_items() -> list[tuple[str, str]]:
+def _build_current_runtime_path(
+    *,
+    target_module: str,
+    target_code: str,
+    target_evidence_ids: list[str],
+    search_terms: list[str],
+    target_evidence_specs: list[dict[str, Any]],
+    code_index: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    ehr_queries = []
+    for evidence_spec in target_evidence_specs:
+        text = str(evidence_spec.get("text", ""))
+        words = [word.strip(".,;:()").lower() for word in text.split()]
+        useful_words = [
+            word
+            for word in words
+            if len(word) >= 4 and word not in {"with", "from", "that", "this", "patient"}
+        ]
+        if useful_words:
+            ehr_queries.append(" ".join(useful_words[:2]))
+    if not ehr_queries:
+        ehr_queries = list(search_terms[:1]) or [target_code]
+
+    code_row = code_index.get(target_code, {})
+    search_queries = [
+        str(code_row.get("short_desc", "")).strip(),
+        str(code_row.get("long_desc", "")).strip(),
+        *list(search_terms),
+    ]
+    search_queries = [query for query in search_queries if query]
+
+    return {
+        "supported_actions": ["QUERY_EHR", "SEARCH", "DETAILS", "SUBMIT"],
+        "recommended_ehr_modules": [target_module],
+        "recommended_ehr_queries": ehr_queries,
+        "recommended_search_queries": search_queries,
+        "expected_details_code": target_code,
+        "expected_submit_code": target_code,
+        "target_evidence_ids": list(target_evidence_ids),
+        "notes": (
+            "Current trainer/runtime compatibility path. Policy, schema, reasoning, and drift metadata are retained "
+            "for future V2 actions but are not required to receive current smoke rewards."
+        ),
+    }
+
+
+def _case_plan_items(split_plan: dict[str, dict[str, int]]) -> list[tuple[str, str]]:
     items: list[tuple[str, str]] = []
-    for split, plan in DEFAULT_SPLIT_PLAN.items():
+    for split in ("train", "eval", "smoke"):
+        plan = split_plan.get(split, {})
         for difficulty in ("easy", "medium", "hard"):
-            for _ in range(plan[difficulty]):
+            for _ in range(int(plan.get(difficulty, 0))):
                 items.append((split, difficulty))
     return items
 
@@ -598,14 +623,13 @@ def _build_task(
     rng: random.Random,
     code_index: dict[str, dict[str, Any]],
     seed: int,
+    source_bank: str,
 ) -> dict[str, Any]:
     target_code = str(blueprint["target_code"])
     if target_code not in code_index:
         raise ValueError(f"Target code {target_code} is missing from the candidate bank.")
 
-    difficulty = str(blueprint.get("difficulty") or "")
-    if not difficulty:
-        raise ValueError("Blueprint difficulty is required.")
+    difficulty = str(blueprint["difficulty"])
     starting_schema_version = str(blueprint.get("starting_schema_version", "v1"))
     drift_to_schema_version = blueprint.get("drift_to_schema_version")
     drift_enabled = bool(drift_to_schema_version)
@@ -616,7 +640,7 @@ def _build_task(
     target_evidence_ids: list[str] = []
     for evidence_index, evidence_spec in enumerate(blueprint.get("target_evidence", []), start=1):
         module_name = str(evidence_spec["module"])
-        evidence_id = f"ev_{blueprint['slug']}_{evidence_index:02d}"
+        evidence_id = f"ev_{blueprint['slug']}_{sequence_index:03d}_{evidence_index:02d}"
         modules[module_name]["query_budget"] = max(modules[module_name]["query_budget"], 1)
         modules[module_name]["evidence"].append(
             _build_evidence(
@@ -638,7 +662,7 @@ def _build_task(
         modules[module_name]["query_budget"] = max(modules[module_name]["query_budget"], 1)
         modules[module_name]["evidence"].append(
             _build_evidence(
-                evidence_id=f"ev_{blueprint['slug']}_dx_{distractor_index:02d}",
+                evidence_id=f"ev_{blueprint['slug']}_{sequence_index:03d}_dx_{distractor_index:02d}",
                 module=module_name,
                 text=str(distractor_spec["text"]),
                 supports_codes=[support_code],
@@ -648,11 +672,6 @@ def _build_task(
             )
         )
 
-    policy_rules = _build_policy_rules(
-        target_code=target_code,
-        schema_version=starting_schema_version,
-        drift_enabled=drift_enabled,
-    )
     drift = _build_drift_config(
         enabled=drift_enabled,
         trigger_step=3 if drift_enabled and difficulty != "hard" else 2 if drift_enabled else None,
@@ -660,17 +679,11 @@ def _build_task(
         to_schema_version=str(drift_to_schema_version) if drift_to_schema_version else None,
     )
     task_id = (
-        f"v2_{split}_{difficulty}_{blueprint['slug']}_"
+        f"v2_task_{split}_{difficulty}_{blueprint['slug']}_"
         f"{'drift' if drift_enabled else final_schema_version}_{sequence_index:03d}"
     )
-    schema_expectations = _build_schema_expectations(
-        target_code=target_code,
-        required_schema_version=final_schema_version,
-        required_fields=final_required_fields,
-        target_evidence_ids=target_evidence_ids,
-    )
     target_module = str(blueprint["target_evidence"][0]["module"])
-
+    search_terms = list(blueprint.get("search_terms", []))
     return {
         "task_id": task_id,
         "split": split,
@@ -692,25 +705,38 @@ def _build_task(
         "ehr_modules": modules,
         "target_evidence": list(target_evidence_ids),
         "target_evidence_ids": list(target_evidence_ids),
-        "policy_rules": policy_rules,
+        "policy_rules": _build_policy_rules(target_code, starting_schema_version, drift_enabled),
         "drift": drift,
-        "schema_validation_expectations": schema_expectations,
+        "schema_validation_expectations": _build_schema_expectations(
+            target_code,
+            final_schema_version,
+            final_required_fields,
+            target_evidence_ids,
+        ),
         "search_labels": {
-            "recommended_queries": list(blueprint.get("search_terms", [])),
+            "recommended_queries": search_terms,
             "target_code": target_code,
             "accepted_code_family": _family(target_code),
         },
+        "current_runtime_path": _build_current_runtime_path(
+            target_module=target_module,
+            target_code=target_code,
+            target_evidence_ids=target_evidence_ids,
+            search_terms=search_terms,
+            target_evidence_specs=list(blueprint.get("target_evidence", [])),
+            code_index=code_index,
+        ),
         "verification_checkpoints": _build_checkpoints(
             target_module=target_module,
             target_evidence_ids=target_evidence_ids,
-            search_terms=list(blueprint.get("search_terms", [])),
+            search_terms=search_terms,
             policy_schema_version=starting_schema_version,
             submit_schema_version=final_schema_version,
             target_code=target_code,
         ),
         "generator_metadata": {
             "generator_version": "v1",
-            "source_bank": "icd10_expanded.json",
+            "source_bank": source_bank,
             "seed": seed,
             "blueprint_slug": blueprint["slug"],
         },
@@ -721,23 +747,22 @@ def generate_cases(
     *,
     seed: int = 7,
     bank_path: Path | None = None,
+    split_plan: dict[str, dict[str, int]] | None = None,
 ) -> list[dict[str, Any]]:
-    """Generate a deterministic set of synthetic V2 tasks."""
-
     repo_root = Path(__file__).resolve().parent
-    bank_path = bank_path or (repo_root / "icd10_expanded.json")
+    bank_path = bank_path or (repo_root / "icd10_mock.json")
     code_index = _load_icd_index(bank_path)
     rng = random.Random(seed)
-    plan = _case_plan_items()
-    tasks: list[dict[str, Any]] = []
+    plan = _case_plan_items(split_plan or DEFAULT_SPLIT_PLAN)
+
     usage_counter: dict[str, int] = {}
     shuffled_pools: dict[str, list[dict[str, Any]]] = {}
-
     for difficulty, blueprints in CASE_BLUEPRINTS.items():
         pool = deepcopy(blueprints)
         rng.shuffle(pool)
         shuffled_pools[difficulty] = pool
 
+    tasks: list[dict[str, Any]] = []
     for split, difficulty in plan:
         pool = shuffled_pools[difficulty]
         used = usage_counter.get(difficulty, 0)
@@ -752,48 +777,99 @@ def generate_cases(
                 rng=rng,
                 code_index=code_index,
                 seed=seed,
+                source_bank=bank_path.name,
             )
         )
-
     return tasks
+
+
+def _task_path(output_dir: Path, task: dict[str, Any]) -> Path:
+    return output_dir / f"{task['task_id']}.json"
 
 
 def write_generated_cases(
     *,
-    output_path: Path,
+    output_dir: Path,
+    output_path: Path | None = None,
     seed: int = 7,
     bank_path: Path | None = None,
+    split_plan: dict[str, dict[str, int]] | None = None,
+    clean: bool = False,
 ) -> list[dict[str, Any]]:
-    """Generate tasks and write them to disk."""
+    tasks = generate_cases(seed=seed, bank_path=bank_path, split_plan=split_plan)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    tasks = generate_cases(seed=seed, bank_path=bank_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(tasks, indent=2) + "\n", encoding="utf-8")
+    if clean:
+        for old_file in output_dir.glob("v2_task_*.json"):
+            old_file.unlink()
+
+    for task in tasks:
+        _task_path(output_dir, task).write_text(json.dumps(task, indent=2) + "\n", encoding="utf-8")
+
+    manifest = {
+        "generator_version": "v1",
+        "seed": seed,
+        "task_count": len(tasks),
+        "task_ids": [task["task_id"] for task in tasks],
+        "splits": {
+            split: sum(1 for task in tasks if task.get("split") == split)
+            for split in ("train", "eval", "smoke")
+        },
+        "difficulties": {
+            difficulty: sum(1 for task in tasks if task.get("difficulty") == difficulty)
+            for difficulty in ("easy", "medium", "hard")
+        },
+        "drift_enabled_count": sum(1 for task in tasks if task.get("drift", {}).get("enabled")),
+    }
+    (output_dir / "synthetic_cases_manifest.json").write_text(
+        json.dumps(manifest, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    if output_path is not None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(json.dumps(tasks, indent=2) + "\n", encoding="utf-8")
     return tasks
 
 
+def _parse_split_plan(args: argparse.Namespace) -> dict[str, dict[str, int]]:
+    return {
+        "train": {"easy": args.train_easy, "medium": args.train_medium, "hard": args.train_hard},
+        "eval": {"easy": args.eval_easy, "medium": args.eval_medium, "hard": args.eval_hard},
+        "smoke": {"easy": args.smoke_easy, "medium": args.smoke_medium, "hard": args.smoke_hard},
+    }
+
+
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate deterministic synthetic V2 tasks.")
+    parser = argparse.ArgumentParser(description="Generate deterministic synthetic V2 task files.")
+    parser.add_argument("--output-dir", type=Path, default=Path("examples"), help="Directory for generated tasks.")
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("examples") / "v2_tasks_synthetic.json",
-        help="Path to the generated JSON file.",
+        help="Optional aggregate JSON-array output for compatibility with earlier generator usage.",
     )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=7,
-        help="Deterministic generation seed.",
-    )
-    parser.add_argument(
-        "--bank",
-        type=Path,
-        default=Path("icd10_expanded.json"),
-        help="ICD candidate bank JSON file.",
-    )
+    parser.add_argument("--seed", type=int, default=7, help="Deterministic generation seed.")
+    parser.add_argument("--bank", type=Path, default=Path("icd10_mock.json"), help="ICD candidate bank JSON file.")
+    parser.add_argument("--clean", action="store_true", help="Delete old generated v2_task_*.json files first.")
+    parser.add_argument("--train-easy", type=int, default=DEFAULT_SPLIT_PLAN["train"]["easy"])
+    parser.add_argument("--train-medium", type=int, default=DEFAULT_SPLIT_PLAN["train"]["medium"])
+    parser.add_argument("--train-hard", type=int, default=DEFAULT_SPLIT_PLAN["train"]["hard"])
+    parser.add_argument("--eval-easy", type=int, default=DEFAULT_SPLIT_PLAN["eval"]["easy"])
+    parser.add_argument("--eval-medium", type=int, default=DEFAULT_SPLIT_PLAN["eval"]["medium"])
+    parser.add_argument("--eval-hard", type=int, default=DEFAULT_SPLIT_PLAN["eval"]["hard"])
+    parser.add_argument("--smoke-easy", type=int, default=DEFAULT_SPLIT_PLAN["smoke"]["easy"])
+    parser.add_argument("--smoke-medium", type=int, default=DEFAULT_SPLIT_PLAN["smoke"]["medium"])
+    parser.add_argument("--smoke-hard", type=int, default=DEFAULT_SPLIT_PLAN["smoke"]["hard"])
     args = parser.parse_args()
-    write_generated_cases(output_path=args.output, seed=args.seed, bank_path=args.bank)
+
+    tasks = write_generated_cases(
+        output_dir=args.output_dir,
+        output_path=args.output,
+        seed=args.seed,
+        bank_path=args.bank,
+        split_plan=_parse_split_plan(args),
+        clean=args.clean,
+    )
+    print(f"Wrote {len(tasks)} synthetic V2 tasks to {args.output_dir}")
 
 
 if __name__ == "__main__":
