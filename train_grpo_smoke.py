@@ -77,6 +77,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-new-tokens", type=int, default=96, help="Generation cap for action JSON.")
     parser.add_argument("--skip-train", action="store_true", help="Only run the live env baseline smoke.")
     parser.add_argument(
+        "--disable-unsloth-fast-rl",
+        action="store_true",
+        help="Use vanilla TRL GRPOTrainer if the installed Unsloth fast-RL patch is incompatible.",
+    )
+    parser.add_argument(
         "--emit-observability-only",
         action="store_true",
         help="Regenerate comparison JSON and plots from an existing completed output directory.",
@@ -129,6 +134,7 @@ def build_command_metadata(args: argparse.Namespace, output_dir: Path) -> dict[s
         "train_steps": args.train_steps,
         "max_new_tokens": args.max_new_tokens,
         "skip_train": args.skip_train,
+        "disable_unsloth_fast_rl": args.disable_unsloth_fast_rl,
         "emit_observability_only": args.emit_observability_only,
         "expected_artifacts": [
             "command_metadata.json",
@@ -844,14 +850,16 @@ def emit_observability_artifacts(output_dir: Path) -> dict[str, Any]:
     return comparison
 
 
-def require_training_stack():
+def require_training_stack(*, use_unsloth_fast_rl: bool = True):
     try:
         import torch  # noqa: F401
         from datasets import Dataset  # noqa: F401
         from unsloth import FastLanguageModel  # noqa: F401
-        from unsloth import PatchFastRL  # noqa: F401
 
-        PatchFastRL(FastLanguageModel)
+        if use_unsloth_fast_rl:
+            from unsloth import PatchFastRL  # noqa: F401
+
+            PatchFastRL(FastLanguageModel)
         from trl import GRPOConfig, GRPOTrainer  # noqa: F401
     except Exception as exc:  # pragma: no cover - exercised only when optional deps are missing
         raise RuntimeError(
@@ -958,14 +966,18 @@ def evaluate_model_policy(
 
 
 def run_grpo_smoke_train(args: argparse.Namespace, output_dir: Path) -> dict[str, Any]:
-    require_training_stack()
+    use_unsloth_fast_rl = not args.disable_unsloth_fast_rl
+    require_training_stack(use_unsloth_fast_rl=use_unsloth_fast_rl)
 
     import torch
     from datasets import Dataset
-    from unsloth import FastLanguageModel, PatchFastRL
+    from unsloth import FastLanguageModel
     from trl import GRPOConfig, GRPOTrainer
 
-    PatchFastRL(FastLanguageModel)
+    if use_unsloth_fast_rl:
+        from unsloth import PatchFastRL
+
+        PatchFastRL(FastLanguageModel)
 
     train_rows = build_train_rows(args.task_ids, args.samples_per_task)
     save_json(output_dir / "train_rows_preview.json", train_rows[: min(4, len(train_rows))])
@@ -1037,6 +1049,7 @@ def run_grpo_smoke_train(args: argparse.Namespace, output_dir: Path) -> dict[str
         "post_train_rollout_summary": trained_eval["rollout_summary"],
         "trainer_metrics": dict(getattr(train_output, "metrics", {})),
         "saved_model_dir": str(output_dir / "model"),
+        "unsloth_fast_rl_enabled": use_unsloth_fast_rl,
     }
     save_json(output_dir / "summary.json", summary)
     emit_observability_artifacts(output_dir)
