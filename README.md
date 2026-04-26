@@ -44,6 +44,7 @@ The judge-facing training path is intentionally small-model first so it can be r
 - Generated V2 Colab launcher: [`train_generated_v2_grpo_launcher.ipynb`](train_generated_v2_grpo_launcher.ipynb)
 - Smoke Colab launcher: [`train_grpo_smoke_launcher.ipynb`](train_grpo_smoke_launcher.ipynb)
 - Training runner: [`train_grpo_smoke.py`](train_grpo_smoke.py)
+- Draft mini-blog: [`BLOG.md`](BLOG.md)
 
 Recommended order:
 
@@ -55,6 +56,81 @@ Recommended order:
 6. Scale to larger presets only after the small-model run is stable.
 
 The README already links the active Hugging Face Space. When the external mini-blog, short video, or slide deck is ready, add those public URLs here rather than committing large media files into the repo.
+
+## Submission Materials
+
+These are the reviewer-facing entry points that should stay near the top of the README.
+
+- Environment Space: [`anirudw/rveda-rcm-arena`](https://huggingface.co/spaces/anirudw/rveda-rcm-arena)
+- Archived Round 1 baseline: [`anirudw/rveda`](https://huggingface.co/spaces/anirudw/rveda)
+- Rerunnable generated-training notebook: [`train_generated_v2_grpo_launcher.ipynb`](train_generated_v2_grpo_launcher.ipynb)
+- Smoke notebook: [`train_grpo_smoke_launcher.ipynb`](train_grpo_smoke_launcher.ipynb)
+- Blog draft to publish externally: [`BLOG.md`](BLOG.md)
+
+Planned external links to add before final submission:
+
+- Public mini-blog URL: `TODO`
+- Short video URL: `TODO`
+- Optional slides/deck URL: `TODO`
+
+Do not commit large media files into this repo. Keep the repo lightweight and link out to public URLs instead.
+
+## Results Snapshot
+
+The current training proof is intentionally conservative: a rerunnable Colab smoke run with a small `Qwen/Qwen2.5-1.5B-Instruct` policy and a plain-TRL fallback path. The goal is to prove that the environment, reward loop, trainer wiring, and artifact generation all work end to end before attempting larger models.
+
+Current primary smoke-run evidence:
+
+- Model: `Qwen/Qwen2.5-1.5B-Instruct`
+- Environment: OpenEnv-based Rveda V2 generated-task training loop
+- Colab GPU: `Tesla T4`
+- Tasks evaluated: `4`
+- Baseline mean total reward: `1.32375`
+- Post-train mean total reward: `1.31500`
+- Training steps: `4`
+- `SUBMIT` count: `4`
+- Search-to-submission ratio: `1.0`
+- Timeout frequency: `0.0`
+
+Interpretation:
+
+- This is valid proof that training executed, produced artifacts, and completed end-to-end claim trajectories with `SUBMIT`.
+- The scripted baseline is currently slightly stronger than the trained 1.5B policy in this smoke configuration, so this should be read as a reproducible training-proof milestone rather than a final performance win.
+- The next iteration should focus on reward shaping, curriculum, and stronger learned-policy behavior before scaling model size.
+
+## Training Evidence
+
+After a successful Colab run, commit the plot files under `docs/plots/` and embed them here. The key reviewer-facing requirement is that the plots live in the repo as readable image files rather than only in Colab outputs.
+
+Expected committed plot paths:
+
+- `docs/plots/reward_plot.png`
+- `docs/plots/loss_plot.png`
+- `docs/plots/verifier_metrics_plot.png`
+
+Suggested captions:
+
+- Reward plot: baseline vs trained mean total reward on the same axes for the Colab rerunnable smoke run.
+- Loss plot: GRPO training loss by logged training step.
+- Verifier metrics plot: trained-minus-baseline deltas for reward-adjacent verifier metrics.
+
+The exact Colab cells for converting generated SVGs into committed PNGs are documented in [`temporary.md`](temporary.md). For the current best smoke run, the honest summary is:
+
+- the run is rerunnable,
+- the environment reaches `SUBMIT`,
+- the artifacts are saved,
+- the trained small model does not yet beat the scripted baseline.
+
+### Current Plot Set
+
+![Baseline vs trained reward](docs/plots/reward_plot.png)
+Baseline vs trained mean total reward for the second small-model Colab smoke run; the scripted baseline remains slightly stronger than the trained 1.5B policy.
+
+![Training loss](docs/plots/loss_plot.png)
+GRPO training loss by logged training step for the second `Qwen/Qwen2.5-1.5B-Instruct` Colab run.
+
+![Verifier metric deltas](docs/plots/verifier_metrics_plot.png)
+Trained-minus-baseline verifier metric deltas for the second smoke run; this plot makes it clear where the trained policy matched or lagged the scripted baseline.
 
 ## Why Rveda
 
