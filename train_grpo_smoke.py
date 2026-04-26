@@ -883,53 +883,115 @@ def require_training_stack(*, enable_unsloth_fast_rl: bool):
     try:
         import torch  # noqa: F401
         from datasets import Dataset  # noqa: F401
-        from unsloth import FastLanguageModel  # noqa: F401
 
         if enable_unsloth_fast_rl:
+            from unsloth import FastLanguageModel  # noqa: F401
             from unsloth import PatchFastRL  # noqa: F401
 
             PatchFastRL(FastLanguageModel)
+        else:
+            from peft import (  # noqa: F401
+                LoraConfig,
+                get_peft_model,
+                prepare_model_for_kbit_training,
+            )
+            from transformers import (  # noqa: F401
+                AutoModelForCausalLM,
+                AutoTokenizer,
+                BitsAndBytesConfig,
+            )
         from trl import GRPOConfig, GRPOTrainer  # noqa: F401
     except Exception as exc:  # pragma: no cover - exercised only when optional deps are missing
         raise RuntimeError(
-            "Optional training stack is missing. Install torch, datasets, accelerate, trl, and unsloth."
+            "Optional training stack is missing. Install torch, datasets, accelerate, trl, peft, and unsloth."
         ) from exc
 
 
-def load_model_stack(model_name: str):
+def load_model_stack(model_name: str, *, enable_unsloth_fast_rl: bool):
     import torch
-    from unsloth import FastLanguageModel
 
     if not torch.cuda.is_available():
         raise RuntimeError(
             "Unsloth GRPO smoke training requires CUDA. Use --skip-train for the local baseline smoke."
         )
 
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=model_name,
-        max_seq_length=2048,
-        dtype=None,
-        load_in_4bit=True,
+    if enable_unsloth_fast_rl:
+        from unsloth import FastLanguageModel
+
+        model, tokenizer = FastLanguageModel.from_pretrained(
+            model_name=model_name,
+            max_seq_length=2048,
+            dtype=None,
+            load_in_4bit=True,
+        )
+        model = FastLanguageModel.get_peft_model(
+            model,
+            r=16,
+            target_modules=[
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
+                "gate_proj",
+                "up_proj",
+                "down_proj",
+            ],
+            lora_alpha=16,
+            lora_dropout=0,
+            bias="none",
+            use_gradient_checkpointing="unsloth",
+            random_state=3407,
+            use_rslora=False,
+            loftq_config=None,
+        )
+        return model, tokenizer
+
+    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+    from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+
+    compute_dtype = (
+        torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.float16
     )
-    model = FastLanguageModel.get_peft_model(
+    quantization_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_compute_dtype=compute_dtype,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+    )
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True, trust_remote_code=True)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token or "<|PAD_TOKEN|>"
+    tokenizer.padding_side = "left"
+
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        quantization_config=quantization_config,
+        device_map="auto",
+        torch_dtype=compute_dtype,
+        trust_remote_code=True,
+    )
+    model.config.use_cache = False
+    model.config.pad_token_id = tokenizer.pad_token_id
+    model = prepare_model_for_kbit_training(model)
+    model = get_peft_model(
         model,
-        r=16,
-        target_modules=[
-            "q_proj",
-            "k_proj",
-            "v_proj",
-            "o_proj",
-            "gate_proj",
-            "up_proj",
-            "down_proj",
-        ],
-        lora_alpha=16,
-        lora_dropout=0,
-        bias="none",
-        use_gradient_checkpointing="unsloth",
-        random_state=3407,
-        use_rslora=False,
-        loftq_config=None,
+        LoraConfig(
+            r=16,
+            lora_alpha=16,
+            lora_dropout=0,
+            bias="none",
+            task_type="CAUSAL_LM",
+            target_modules=[
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
+                "gate_proj",
+                "up_proj",
+                "down_proj",
+            ],
+        ),
     )
     return model, tokenizer
 
@@ -1000,10 +1062,10 @@ def run_grpo_smoke_train(args: argparse.Namespace, output_dir: Path) -> dict[str
 
     import torch
     from datasets import Dataset
-    from unsloth import FastLanguageModel
     from trl import GRPOConfig, GRPOTrainer
 
     if enable_unsloth_fast_rl:
+        from unsloth import FastLanguageModel
         from unsloth import PatchFastRL
 
         PatchFastRL(FastLanguageModel)
@@ -1012,7 +1074,10 @@ def run_grpo_smoke_train(args: argparse.Namespace, output_dir: Path) -> dict[str
     save_json(output_dir / "train_rows_preview.json", train_rows[: min(4, len(train_rows))])
     train_dataset = Dataset.from_list(train_rows)
 
-    model, tokenizer = load_model_stack(args.model_name)
+    model, tokenizer = load_model_stack(
+        args.model_name,
+        enable_unsloth_fast_rl=enable_unsloth_fast_rl,
+    )
 
     baseline_eval = evaluate_model_policy(
         model,
