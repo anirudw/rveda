@@ -710,7 +710,7 @@ def _build_task(
         ),
         "generator_metadata": {
             "generator_version": "v1",
-            "source_bank": "icd10_mock.json",
+            "source_bank": "icd10_expanded.json",
             "seed": seed,
             "blueprint_slug": blueprint["slug"],
         },
@@ -725,7 +725,7 @@ def generate_cases(
     """Generate a deterministic set of synthetic V2 tasks."""
 
     repo_root = Path(__file__).resolve().parent
-    bank_path = bank_path or (repo_root / "icd10_mock.json")
+    bank_path = bank_path or (repo_root / "icd10_expanded.json")
     code_index = _load_icd_index(bank_path)
     rng = random.Random(seed)
     plan = _case_plan_items()
@@ -789,7 +789,7 @@ def main() -> None:
     parser.add_argument(
         "--bank",
         type=Path,
-        default=Path("icd10_mock.json"),
+        default=Path("icd10_expanded.json"),
         help="ICD candidate bank JSON file.",
     )
     args = parser.parse_args()
