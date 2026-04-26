@@ -1022,14 +1022,20 @@ def generate_action_text(model, tokenizer, prompt: str, max_new_tokens: int) -> 
     model_device = next(model.parameters()).device
     inputs = {name: tensor.to(model_device) for name, tensor in inputs.items()}
 
-    with torch.no_grad():
-        generated = model.generate(
-            **inputs,
-            max_new_tokens=max_new_tokens,
-            do_sample=True,
-            temperature=0.7,
-            pad_token_id=tokenizer.eos_token_id,
-        )
+    generation_kwargs = {
+        **inputs,
+        "max_new_tokens": max_new_tokens,
+        "do_sample": True,
+        "temperature": 0.7,
+        "pad_token_id": tokenizer.eos_token_id,
+    }
+
+    if torch.cuda.is_available():
+        with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.float16):
+            generated = model.generate(**generation_kwargs)
+    else:
+        with torch.no_grad():
+            generated = model.generate(**generation_kwargs)
 
     prompt_len = inputs["input_ids"].shape[1]
     completion_ids = generated[0][prompt_len:]
