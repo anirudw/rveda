@@ -974,11 +974,21 @@ def load_model_stack(model_name: str, *, enable_unsloth_fast_rl: bool):
         model_name,
         quantization_config=quantization_config,
         device_map="auto",
-        torch_dtype=compute_dtype,
+        dtype=compute_dtype,
         trust_remote_code=True,
     )
     model.config.use_cache = False
     model.config.pad_token_id = tokenizer.pad_token_id
+    model.config.torch_dtype = compute_dtype
+    if getattr(model, "generation_config", None) is not None:
+        model.generation_config.pad_token_id = tokenizer.pad_token_id
+        model.generation_config.eos_token_id = tokenizer.eos_token_id
+        model.generation_config.bos_token_id = tokenizer.bos_token_id
+
+    output_embeddings = model.get_output_embeddings()
+    if output_embeddings is not None:
+        output_embeddings.to(dtype=compute_dtype)
+
     model = prepare_model_for_kbit_training(model)
     model = get_peft_model(
         model,
@@ -999,6 +1009,9 @@ def load_model_stack(model_name: str, *, enable_unsloth_fast_rl: bool):
             ],
         ),
     )
+    output_embeddings = model.get_output_embeddings()
+    if output_embeddings is not None:
+        output_embeddings.to(dtype=compute_dtype)
     return model, tokenizer
 
 
