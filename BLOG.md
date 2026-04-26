@@ -1,124 +1,93 @@
-# Rveda V2: Training a Cautious Medical Coding Agent Under Fog-of-War
+# RVEDA RCM ARENA: Training a Medical Coding Agent Under Hidden Evidence and Policy Drift
 
-Rveda V2 is a benchmark environment for **agentic medical coding under partial observability**. Instead of asking a model to emit an ICD code in one shot, the environment forces it to behave more like a cautious revenue-cycle operator:
+## Why Medical Coding Needs an Interactive Benchmark
 
-1. reveal hidden evidence from the EHR,
-2. search the ICD candidate bank,
-3. inspect code details,
-4. check policy and schema requirements,
-5. record grounded reasoning,
-6. validate the draft claim shape,
-7. submit the final diagnosis code.
+Medical coding can look deceptively simple if you reduce it to label prediction: read a note, emit an ICD code, score exact match. Real revenue-cycle work is harder. Relevant evidence is often scattered across chart sections, payer requirements can change, near-neighbor codes can look plausible, and unsupported specificity can create financial and compliance problems rather than just a benchmark miss.
 
-That workflow is the core of the benchmark. The goal is not to imitate a production medical coding platform. The goal is to make the reasoning process itself observable, auditable, and trainable.
+RVEDA RCM ARENA models that operational loop instead of the static label problem. That is why it fits OpenEnv and RL well. The task is interactive by nature: the agent has to reveal evidence, search a large code space, inspect details, adapt to drift, and submit a grounded claim under a structured reward function. The question is not only whether the model can name a code. It is whether it can behave like a cautious coder when the easy shortcut is to guess.
 
-## Why this problem matters
+There is real business value behind that framing. In a [JAMA study of billing and insurance-related work](https://jamanetwork.com/journals/jama/fullarticle/2673148), administrative processing was estimated at `$20` to `$215` per encounter and `3%` to `25%` of professional revenue depending on encounter type. In Medicare Advantage, [MedPAC's March 2024 report](https://www.medpac.gov/document/chapter-13-estimating-medicare-advantage-coding-intensity-and-favorable-selection-march-2024-report/) estimated a projected `$83 billion` payment gap versus FFS in 2024, with coding intensity alone contributing about `$50 billion`. A [2025 Health Affairs Scholar study](https://pubmed.ncbi.nlm.nih.gov/39822237/) found wide variation in coding inflation across contracts. RVEDA RCM ARENA is not a production claims-control system, but those figures make the benchmark target worth taking seriously.
 
-Medical coding is not just a classification task. It sits inside a larger operational surface where weak coding behavior can create financial, compliance, and trust problems at scale. A benchmark that rewards only the final label can easily reward the wrong policy: unsupported specificity, shortcut retrieval, and submission without enough evidence.
+## How RVEDA RCM ARENA Turns Coding Into a Tool-Use Problem
 
-Rveda is designed to test the opposite behavior:
+RVEDA RCM ARENA is an OpenEnv environment for agentic medical coding under partial observability. The episode does not start with a fully exposed chart and a clean target label. The agent has to work toward a defensible submission.
 
-- retrieve before committing,
-- cite evidence before submitting,
-- adapt when the schema or policy changes,
-- expose structured reward signals instead of a single opaque score.
+The loop is simple to describe and hard to execute well. `QUERY_EHR` reveals hidden chart evidence. `SEARCH` and `DETAILS` navigate the ICD candidate space and exclusions. `CHECK_POLICY` and claim validation expose schema requirements that can change mid-episode. The trajectory only ends cleanly when the agent records grounded reasoning, validates the draft claim shape, and `SUBMIT`s the final code.
 
-That is why the environment includes **Fog-of-War**, **policy/schema drift**, **reasoning logs**, and **claim-schema validation** instead of only `SEARCH` and `SUBMIT`.
+## Why This Is Harder Than Label Prediction
 
-## What the environment does
+RVEDA RCM ARENA is not difficult because the label set is large. It is difficult because it punishes the shortcuts that flatter benchmarks often reward.
 
-Rveda uses OpenEnv and exposes a tool-style action loop. Depending on the task slice, the agent can:
+If evidence is hidden, guessing early can land on a plausible but unsupported code. If the schema changes mid-episode, a previously acceptable draft can become invalid. If the model submits a near-neighbor code from the right family without the right evidence, that should still count as failure in operational terms. The verifier therefore cares about more than terminal text: it grades correctness, grounding, and whether the workflow itself was valid.
 
-- `QUERY_EHR`
-- `SEARCH`
-- `DETAILS`
-- `CHECK_POLICY`
-- `VALIDATE_CLAIM_SCHEMA`
-- `REASONING_LOG`
-- `SUBMIT`
+The model is not just selecting a label from text. It is making sequential decisions under uncertainty while trying to avoid incorrect but superficially reasonable actions.
 
-The important design choice is that the correct answer is intentionally **not fully visible at reset**. The agent has to reveal evidence, inspect candidates, and satisfy schema constraints before it can terminate cleanly. That makes the benchmark more useful for RL than a static label lookup task.
+## Training Configuration
 
-## What we trained
+The current training path is deliberately small-model first. The strongest rerunnable evidence comes from `Qwen/Qwen2.5-1.5B-Instruct` on a Tesla T4 in Colab, trained with TRL GRPO over live environment rollouts using [train_grpo_smoke.py](train_grpo_smoke.py) and the generated-task notebook linked above.
 
-The first working training proof intentionally uses a **small model** and a **small number of GRPO steps**. That was a deliberate choice:
+We started with an Unsloth-assisted path because it is attractive for memory-constrained RL, especially on Colab hardware. In practice, the most stable setup for this project became a plain TRL fallback with low-memory loading. That was an engineering tradeoff, not a branding choice. At this phase, reproducibility mattered more than saying we ran the largest stack possible.
 
-- small models iterate faster,
-- Colab reruns are more reliable,
-- reward/debug loops matter more than headline model size in the early phase,
-- a rerunnable proof is more valuable than one oversized run that barely fits.
+The reward path is live through the environment bridge rather than an offline label file. RVEDA RCM ARENA is meant to grade behavior, not just final text, so the trainer needs to interact with the environment reward surface.
 
-The current training path uses:
+Current scale is still early. The strongest run so far used 4 generated tasks, 8 train steps, and an 8-episode smoke evaluation. That is enough to show a meaningful behavior change, but not enough to treat the result as a final performance claim.
 
-- OpenEnv for the environment layer,
-- a Colab-rerunnable notebook launcher,
-- TRL-based GRPO,
-- QLoRA-style low-memory loading,
-- generated V2 tasks as a controlled curriculum source.
+## First Failure Modes
 
-## What worked
+The first real failure was pipeline quality, not model quality. The generated-task Colab notebook did not work from a fresh runtime because it tried to install from `/content/rveda` before cloning the repo. In a judged environment, that kind of rerun brittleness matters.
 
-The strongest current Colab smoke run completed end to end on a **Tesla T4** using `Qwen/Qwen2.5-1.5B-Instruct` and produced:
+The next failure was more instructive. The Unsloth FastRL path loaded and then crashed inside GRPO with a compatibility mismatch around missing `old_logps` and `ref_logps`. Passing `--disable-unsloth-fast-rl` was not enough because the initial fallback still flowed through parts of the Unsloth stack. We had to build a real plain-TRL fallback.
 
-- `summary.json`
-- `baseline_model_eval.json`
-- `post_train_model_eval.json`
-- `trainer_log_history.json`
-- `baseline_vs_trained_comparison.json`
-- reward/loss/verifier plots
+That fallback then hit repeated `Float` versus `BFloat16` errors on the T4 during generation and training. A small-model Colab RL path is not automatically stable just because the model fits in memory.
 
-That run evaluated **4 generated tasks**, reached `SUBMIT` on all `4`, achieved a **search-to-submission ratio of 1.0**, and finished with **0 timeouts**. This is the important milestone: the environment, the trainer, and the saved artifacts are all real and rerunnable.
+Even after the trainer ran, an early tiny run produced misleading optics. It showed a small reward increase, from `0.18075` to `0.2`, but the agent never reached `SUBMIT`. The reason was simple: the episode budget was only 4 steps, which made the full cautious workflow impossible by construction. The run was not fake, but it proved less than the raw reward delta suggested.
 
-## What the current numbers do and do not show
+There were quieter failures too. Some tests were brittle because they depended on task ordering rather than explicit task lookup. Several judge-friendly metrics remained proxy-only: the smoke runner emitted a grounding proxy, while drift adaptation and schema validation pass rates remained null in the strongest smoke runs.
 
-The most honest summary of the current best smoke run is:
+## Lessons from the Failures
 
-- baseline mean total reward: **1.32375**
-- trained mean total reward: **1.31500**
-- delta: **-0.00875**
+The main lesson was that training credibility depends as much on observability as on reward design.
 
-So the current result proves that:
+The low-step run showed that a benchmark can produce "training evidence" while making terminal success impossible. That changed the curriculum. Step budgets, action requirements, and terminal workflow validity have to be designed together.
 
-- the OpenEnv environment is live,
-- the trainer is live,
-- the generated tasks are usable for training,
-- the saved artifacts are real and reviewable,
-- the policy can complete full trajectories through `SUBMIT`.
+The trainer failures taught us not to confuse a nominal stack choice with a stable one. "Plain TRL fallback on a 1.5B model" turned out to be more valuable than a more impressive but brittle setup because it reran, produced artifacts, and exposed real behavior.
 
-But it does **not** prove that the learned 1.5B policy is already stronger than the scripted baseline. In the current smoke configuration, the scripted baseline remains slightly better.
+The metric gaps led to a similarly practical conclusion. A grounding proxy is not a real grounding F1. Null drift adaptation and schema validation rates do not mean those dimensions are unimportant; they mean the runner still needs stronger labels and richer event traces. That changed the work plan. The next improvement is not just more training. It is better metric instrumentation.
 
-That distinction matters. The current result should be read as a **reproducible training-proof milestone**, not as a final performance win.
+## Current Evidence
 
-## What still needs to improve
+What we can honestly show today is concrete:
 
-The most important current gap is not model size. It is **turning a stable training proof into an actual learning win**.
+- a runnable Hugging Face Space
+- a rerunnable Colab notebook
+- a working training script with a plain-TRL fallback path
+- saved artifacts including `summary.json`, baseline and post-train eval outputs, trainer logs, and comparison files
+- reward, loss, and verifier plots from a real Colab run
 
-Now that the generated-task run reaches `SUBMIT`, the next iteration should focus on:
+The strongest smoke run used `Qwen/Qwen2.5-1.5B-Instruct` on 4 generated tasks with 8 train steps and an 8-episode evaluation. Baseline mean total reward was `0.810125`; post-train mean total reward was `1.31500`, a delta of `+0.504875`. The trained policy reached `SUBMIT` on `8 / 8` episodes, while the scripted baseline only completed `4 / 8` and timed out on half of them. Search-to-submission improved from `3.25` to `1.0`, and timeout frequency dropped from `0.5` to `0.0`.
 
-- improving reward shaping so the learned policy can beat the scripted baseline,
-- expanding the curriculum while keeping the Colab path rerunnable,
-- making schema-validation and drift metrics show up more clearly in the results,
-- only then scaling to larger presets.
+That is materially stronger evidence than the earlier runs. At the same time, it is still smoke-scale evidence. Grounding is still tracked through a proxy, and that proxy dipped slightly from `0.8889` to `0.8824`, so the strongest claim we can make is that the learned policy became much more reliable at completing the workflow, not that every quality dimension improved at once.
 
-That is a much better use of compute than immediately jumping to 7B or 14B.
+## What Is Real Today
 
-## Why OpenEnv matters here
+Several things are no longer hypothetical. The environment runs on OpenEnv, exposes the intended action loop, and supports hidden evidence, code retrieval, policy and schema checks, and grounded submission. A judge can rerun the notebook on commodity Colab hardware and reproduce a working smoke training cycle. The run produces saved comparisons and plots rather than relying on an ephemeral output cell.
 
-One of the non-negotiables for this project is using the latest OpenEnv release and building on top of the framework rather than inventing a custom environment stack. Rveda does that. The environment is packaged as an OpenEnv-compatible server and validated through the OpenEnv tooling, which makes it easier for reviewers to inspect, rerun, and compare against other submissions.
+Just as importantly, the environment already exposes failure modes that a flatter benchmark would hide: exploration without submission, submission without enough evidence, and metric surfaces that are still too weakly labeled to support stronger claims. The latest run also shows that training can improve completion behavior in a measurable way.
 
-## Reviewer-facing assets
+## Still Early
 
-The core submission materials are:
+The project is still early in three ways. First, the generated curriculum is still small. It is enough for smoke training and debugging, not enough for a confident learning claim. Second, several of the most interesting metrics still need stronger labels and richer event capture, especially for grounding, drift adaptation, and schema validation. Third, we have intentionally not centered the story around 7B or 14B training because the present bottleneck is not raw parameter count but reliable iteration and stronger evaluation labels.
 
-- the Hugging Face Space,
-- the README,
-- the Colab training notebook,
-- the saved plots and summary artifacts,
-- this mini-blog or a published version of it,
-- an optional short video showing the environment loop and training results.
+Larger hardware and larger models may matter later, especially for broader generated curricula and more complex drift behavior. But scaling before the metric surface and rerun path are stable would be the wrong optimization.
 
-The repo should stay lightweight. Large videos should not be committed here; link to public URLs instead.
+## Why the Environment Still Matters
 
-## The short version
+RVEDA RCM ARENA is promising because it is asking the right question. Hidden evidence, near-neighbor codes, and claim-format drift create a more meaningful evaluator than a static lookup benchmark. The verifier structure already gives a clear path from "the pipeline runs" to "the learned policy improves for the right reasons."
 
-Rveda V2 is a benchmark for training **careful, evidence-seeking medical coding agents** rather than one-shot label emitters. The environment already supports the critical interaction loop, the Colab training path reruns on a small model, and the strongest current smoke run proves real end-to-end training and submission behavior. The remaining challenge is not getting the pipeline to run; it is getting the learned policy to outperform the scripted baseline.
+That makes the current work useful even before it becomes strong on headline reward. The project already surfaces which parts of cautious medical coding are easy to fake, which parts need richer supervision, and which metrics should be treated as provisional until the environment emits stronger labels.
+
+## Where RVEDA RCM ARENA Stands Now
+
+RVEDA RCM ARENA today is a real OpenEnv environment with real training infrastructure, not a speculative benchmark sketch. It already supports rerunnable interaction, saved training artifacts, and end-to-end submission behavior on generated tasks. The latest smoke run also shows a real policy improvement on completion-oriented metrics over the scripted baseline.
+
+That is exactly why the current stage matters. The environment is stable enough to reveal failure modes, honest enough to show mixed metric movement rather than only headline gains, and structured enough to scale into stronger runs once the data, metrics, and curriculum improve. For OpenEnv Round 2, that is the core claim: not that the problem is solved, but that the right environment has been built, trained, and learned from.

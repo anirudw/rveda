@@ -1,5 +1,5 @@
 ---
-title: Rveda Environment Server
+title: RVEDA RCM ARENA Environment Server
 emoji: "🏥"
 colorFrom: green
 colorTo: blue
@@ -13,132 +13,190 @@ tags:
   - agentic-auditing
 ---
 
-# Rveda
+# RVEDA RCM ARENA
 
-**Rveda is a benchmark environment for agentic medical coding in a human-in-the-loop setting.** It evaluates whether an LLM agent can read a clinical note, retrieve the right evidence from a local ICD-10 knowledge source, and submit the most accurate code with a traceable decision path.
+**RVEDA RCM ARENA** is an OpenEnv benchmark for training cautious medical coding agents under partial observability, schema rules, and policy drift.
 
-The repository is intentionally lightweight: the current build uses a local SQLite-backed ICD-10 database seeded with mock data, an OpenEnv-compatible environment server, and a reference inference loop built on the OpenAI client. That makes Rveda well suited for benchmarking clinical reasoning, retrieval efficiency, and tool-use discipline under deterministic conditions.
+In real revenue-cycle workflows, one-shot coding is unsafe; the agent has to reveal evidence, verify rules, adapt to changing claim requirements, and submit a grounded claim rather than guess from incomplete context.
 
-Although the included baseline is a single-agent loop, the environment is structured for broader multi-agent experimentation, such as retriever-coder-auditor pipelines, while preserving a standardized evaluation interface.
+## Quick Links
 
-## Deployment Status
+- `Live Space:` [`anirudw/rveda-rcm-arena`](https://huggingface.co/spaces/anirudw/rveda-rcm-arena)
+- `Training Notebook:` [`train_generated_v2_grpo_launcher.ipynb`](https://colab.research.google.com/github/anirudw/rveda/blob/main/train_generated_v2_grpo_launcher.ipynb)
+- `Training Script:` [`train_grpo_smoke.py`](train_grpo_smoke.py)
+- `Reward/Loss Plots:` [Training Evidence](#training-evidence)
+- `Blog:` [`BLOG.md`](BLOG.md)
+- `Round 1 Baseline:` [`anirudw/rveda`](https://huggingface.co/spaces/anirudw/rveda)
 
-- Active Round 2 development Space: `https://huggingface.co/spaces/anirudw/rveda-rcm-arena`
-- Archived Round 1 baseline Space: `https://huggingface.co/spaces/anirudw/rveda`
-- This repository currently contains the active OpenEnv migration work and the frozen V2 contract artifacts, but the live runtime is still mostly the Round 1 medical-coding environment while Fog-of-War, policy drift, and structured claim mechanics are implemented.
-## Round 2 Status
+## Why RVEDA RCM ARENA Matters
 
-Rveda V2 is planned as **Revenue Cycle Drift Arena**, a Round 2 professional-task environment for partially observable revenue-cycle workflows.
+Medical coding is not just a classification task. In real revenue-cycle workflows, an agent has to work under incomplete evidence, evolving payer rules, and claim formatting constraints. A benchmark that rewards only the final code can easily reward the wrong behavior: unsupported specificity, shortcut retrieval, and submission without enough evidence.
 
-- Round 2 Space target: [`anirudw/rveda-rcm-arena`](https://huggingface.co/spaces/anirudw/rveda-rcm-arena)
-- Round 1 archived baseline: [`anirudw/rveda`](https://huggingface.co/spaces/anirudw/rveda)
-- V2 contract: [`docs/rveda-v2-contract.md`](docs/rveda-v2-contract.md)
-- Minimal V2 task example: [`examples/v2_task_minimal.json`](examples/v2_task_minimal.json)
+RVEDA RCM ARENA is built to test the opposite behavior. The agent must reveal hidden chart evidence, search the ICD candidate space, inspect code details, check policy/schema requirements, and only then submit a grounded claim. That makes the benchmark more representative of professional work than a static label lookup task.
 
-The default runtime remains the Round 1 medical-coding environment. The repository now includes a minimal V2 slice behind the explicit task ID `v2_easy_overweight_schema_v1`: hidden EHR modules, `QUERY_EHR`, `ehr_map`, revealed evidence, `CHECK_POLICY`, `VALIDATE_CLAIM_SCHEMA`, visible `policy_state`, schema-drift notices, `REASONING_LOG`, and grounding-gated submit behavior are implemented. Later V2 mechanics such as structured claim submission remain unimplemented.
+OpenEnv is the right fit because the problem is fundamentally an interaction loop, not a single forward pass. The environment needs structured actions, structured observations, explicit reward signals, and a clean server/client boundary that judges can rerun.
 
-## Training Path
+## Operational Loop
 
-The judge-facing training path is intentionally small-model first so it can be rerun in Colab instead of depending on one large-model attempt.
+1. uncover hidden chart evidence from the EHR
+2. search/select the correct code from a large candidate space
+3. adapt to policy/schema drift and claim-format constraints
+4. submit a valid grounded claim
+
+## Distinctive Features
+
+- **Fog-of-War EHR:** decisive evidence is hidden behind `QUERY_EHR` rather than visible at reset.
+- **Policy/schema drift:** claim requirements can change mid-episode and the agent has to adapt.
+- **Verifier-based cautious reward design:** the environment exposes structured reward metrics for correctness, grounding, schema compliance, format validity, process discipline, and drift adaptation.
+
+Current state:
+
+- the partial-observability and verifier mechanics are implemented
+- the Colab training path is rerunnable
+- the strongest current evidence is still smoke-level rather than large-scale training, but now shows a real completion-oriented gain over the scripted baseline
+
+## Environment Overview
+
+| Area | Current implementation |
+| --- | --- |
+| Action space | `SEARCH`, `DETAILS`, `QUERY_EHR`, `CHECK_POLICY`, `VALIDATE_CLAIM_SCHEMA`, `REASONING_LOG`, `SUBMIT` |
+| Observation structure | patient note, search results, detailed info, `ehr_map`, revealed evidence, policy state, drift notice, reward metrics, error fields |
+| Drift behavior | policy/schema drift can change required fields mid-episode |
+| Success condition | submit the correct code with the required evidence and schema-valid workflow state |
+
+## Training Setup
+
+The current judge-facing training path is intentionally small-model first so it can be rerun in Colab instead of depending on one large-model attempt.
 
 - Generated V2 Colab launcher: [`train_generated_v2_grpo_launcher.ipynb`](train_generated_v2_grpo_launcher.ipynb)
 - Smoke Colab launcher: [`train_grpo_smoke_launcher.ipynb`](train_grpo_smoke_launcher.ipynb)
 - Training runner: [`train_grpo_smoke.py`](train_grpo_smoke.py)
-- Draft mini-blog: [`BLOG.md`](BLOG.md)
+- Technical blog: [`BLOG.md`](BLOG.md)
+
+Current setup:
+
+- model used: `Qwen/Qwen2.5-1.5B-Instruct`
+- trainer: TRL GRPO with a plain-TRL fallback path
+- reward wiring: live environment reward through the training bridge, not a static offline label file
+- evidence level: smoke-level but real, rerunnable, artifact-producing, and now strong enough to show a meaningful baseline comparison
 
 Recommended order:
 
 1. Sync the repo in Colab.
 2. Run `python -m pytest -q`.
 3. Run `openenv validate`.
-4. Start with the tiny `Qwen/Qwen2.5-1.5B-Instruct` preset and plain TRL fallback.
-5. Confirm that the run produces `summary.json`, `baseline_model_eval.json`, `post_train_model_eval.json`, `loss_plot.svg`, `reward_plot.svg`, and `verifier_metrics_plot.svg`.
-6. Scale to larger presets only after the small-model run is stable.
+4. Start with the small-model preset before attempting larger runs.
+5. Confirm that the run produces saved artifacts under `artifacts/`.
 
-The README already links the active Hugging Face Space. When the external mini-blog, short video, or slide deck is ready, add those public URLs here rather than committing large media files into the repo.
-
-## Submission Materials
-
-These are the reviewer-facing entry points that should stay near the top of the README.
-
-- Environment Space: [`anirudw/rveda-rcm-arena`](https://huggingface.co/spaces/anirudw/rveda-rcm-arena)
-- Archived Round 1 baseline: [`anirudw/rveda`](https://huggingface.co/spaces/anirudw/rveda)
-- Rerunnable generated-training notebook: [`train_generated_v2_grpo_launcher.ipynb`](train_generated_v2_grpo_launcher.ipynb)
-- Smoke notebook: [`train_grpo_smoke_launcher.ipynb`](train_grpo_smoke_launcher.ipynb)
-- Blog draft to publish externally: [`BLOG.md`](BLOG.md)
-
-Planned external links to add before final submission:
-
-- Public mini-blog URL: `TODO`
-- Short video URL: `TODO`
-- Optional slides/deck URL: `TODO`
-
-Do not commit large media files into this repo. Keep the repo lightweight and link out to public URLs instead.
-
-## Results Snapshot
-
-The current training proof is intentionally conservative: a rerunnable Colab smoke run with a small `Qwen/Qwen2.5-1.5B-Instruct` policy and a plain-TRL fallback path. The goal is to prove that the environment, reward loop, trainer wiring, and artifact generation all work end to end before attempting larger models.
+## Results
 
 Current primary smoke-run evidence:
 
-- Model: `Qwen/Qwen2.5-1.5B-Instruct`
-- Environment: OpenEnv-based Rveda V2 generated-task training loop
-- Colab GPU: `Tesla T4`
-- Tasks evaluated: `4`
-- Baseline mean total reward: `1.32375`
-- Post-train mean total reward: `1.31500`
-- Training steps: `4`
-- `SUBMIT` count: `4`
-- Search-to-submission ratio: `1.0`
-- Timeout frequency: `0.0`
+| Run | Model | Tasks | Train steps | Mean total reward | `SUBMIT` count | Search-to-submission | Timeouts |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Baseline policy | `Qwen/Qwen2.5-1.5B-Instruct` | `4` | `0` | `0.810125` | `4 / 8` | `3.25` | `0.5` |
+| Trained policy | `Qwen/Qwen2.5-1.5B-Instruct` | `4` | `8` | `1.31500` | `8 / 8` | `1.0` | `0.0` |
 
-Interpretation:
+Comparison summary:
 
-- This is valid proof that training executed, produced artifacts, and completed end-to-end claim trajectories with `SUBMIT`.
-- The scripted baseline is currently slightly stronger than the trained 1.5B policy in this smoke configuration, so this should be read as a reproducible training-proof milestone rather than a final performance win.
-- The next iteration should focus on reward shaping, curriculum, and stronger learned-policy behavior before scaling model size.
+| Metric | Value |
+| --- | --- |
+| Colab GPU | `Tesla T4` |
+| Reward delta | `+0.504875` |
+| Grounding F1 proxy delta | `-0.00654` |
+| Interpretation | smoke-level improvement over the scripted baseline, driven mainly by higher submission completion and lower timeout rate |
+
+Honest interpretation:
+
+- This is real proof that training executed, produced artifacts, and improved end-to-end policy behavior on the current smoke evaluation.
+- The trained 1.5B policy now completes `8 / 8` evaluation episodes with `SUBMIT`, while the scripted baseline only completes `4 / 8` and times out on half of them.
+- This is still smoke-scale evidence, not a final performance claim: grounding is still measured through a proxy, and drift/schema headline metrics are not yet surfaced in the saved artifact summary.
 
 ## Training Evidence
 
-After a successful Colab run, commit the plot files under `docs/plots/` and embed them here. The key reviewer-facing requirement is that the plots live in the repo as readable image files rather than only in Colab outputs.
+Available verifier-facing metrics in the current run:
 
-Expected committed plot paths:
+- grounding F1 proxy
+- search-to-submission ratio
+- timeout frequency
+- trained-minus-baseline verifier deltas
+- trainer-reported `train_loss`: `0.0` over `8` train steps
 
-- `docs/plots/reward_plot.png`
-- `docs/plots/loss_plot.png`
-- `docs/plots/verifier_metrics_plot.png`
+Metrics that are still early / unavailable in the current smoke run:
 
-Suggested captions:
+- drift adaptation rate
+- schema validation pass rate
 
-- Reward plot: baseline vs trained mean total reward on the same axes for the Colab rerunnable smoke run.
-- Loss plot: GRPO training loss by logged training step.
-- Verifier metrics plot: trained-minus-baseline deltas for reward-adjacent verifier metrics.
+Most informative plots:
 
-The exact Colab cells for converting generated SVGs into committed PNGs are documented in [`temporary.md`](temporary.md). For the current best smoke run, the honest summary is:
+![Phase 3 reward comparison](docs/plots/reward_plot_P3.png)
+Phase 3 baseline-versus-trained reward comparison for the strongest current smoke run; the trained 1.5B policy materially outperforms the scripted baseline on completion-oriented behavior in this evaluation slice.
 
-- the run is rerunnable,
-- the environment reaches `SUBMIT`,
-- the artifacts are saved,
-- the trained small model does not yet beat the scripted baseline.
+![Earlier reward comparison](docs/plots/reward_plot.png)
+Earlier smoke-run reward comparison from the previous successful run; this helps show how the reward picture changed across iterations rather than only within the final Phase 3 result.
 
-### Current Plot Set
+![Earlier training loss](docs/plots/loss_plot.png)
+Training loss from the earlier successful smoke run; included here so the Phase 3 loss curve can be read as part of an iteration sequence rather than as a standalone plot.
 
-![Baseline vs trained reward](docs/plots/reward_plot.png)
-Baseline vs trained mean total reward for the second small-model Colab smoke run; the scripted baseline remains slightly stronger than the trained 1.5B policy.
+![Phase 3 training loss](docs/plots/loss_plot_p3.png)
+GRPO training loss by logged training step for the current `Qwen/Qwen2.5-1.5B-Instruct` Colab run.
 
-![Training loss](docs/plots/loss_plot.png)
-GRPO training loss by logged training step for the second `Qwen/Qwen2.5-1.5B-Instruct` Colab run.
+The Phase 3 verifier-metric plot is still included in the repo at `docs/plots/verifier_metrics_plot_p3.png`, but it is less visually informative than the reward and loss plots because the strongest changes are already captured more clearly by submission completion and timeout behavior.
 
-![Verifier metric deltas](docs/plots/verifier_metrics_plot.png)
-Trained-minus-baseline verifier metric deltas for the second smoke run; this plot makes it clear where the trained policy matched or lagged the scripted baseline.
 
-## Why Rveda
+## Reproduction
 
-Medical coding sits inside a much larger operational and financial surface area. A UC San Diego and *Health Affairs* analysis projected that aggressive diagnostic coding intensity could drive [more than $200 billion in Medicare overpayments over a decade](https://www.sciencedaily.com/releases/2017/02/170207092727.htm). A recent Zinnov industry report similarly projects U.S. healthcare revenue cycle management spend to reach [USD 200-210 billion by 2029](https://zinnov.com/centers-of-excellence/the-200-billion-question-why-the-future-of-healthcare-rcm-may-belong-to-india) as billing workflows become more fragmented and administratively heavy. Those figures do not imply that a lightweight benchmark solves the full problem, but they do show why coding behavior is not a harmless toy task: inaccurate, over-aggressive, or weakly verified coding decisions can scale into real financial and operational damage.
+Quickstart:
 
-A benchmark that rewards only the final label risks training exactly the wrong behavior: hallucinating or overly aggressive agents that maximize apparent specificity without grounding. Rveda is designed to test the opposite behavior: grounded, stepwise coding decisions in which retrieval and verification are part of the task, not optional post-processing.
+- Install: `uv sync` or the Colab install cells in [`train_generated_v2_grpo_launcher.ipynb`](train_generated_v2_grpo_launcher.ipynb)
+- Local run: `python -m pytest -q`, `openenv validate`, then run the training script or notebook
+- Space run: use the linked Hugging Face Space above
+- Colab rerun: start from the generated training notebook
+- Artifact output location: `artifacts/`
 
-Rveda is designed to answer a concrete research question:
+## Repo Map
+
+| Area | Path |
+| --- | --- |
+| Environment code | `server/rveda_environment.py`, `server/policy_engine.py`, `server/reward_engine.py` |
+| Task generation | `generate_cases.py`, `examples/` |
+| Training script | `train_grpo_smoke.py` |
+| Notebook | `train_generated_v2_grpo_launcher.ipynb`, `train_grpo_smoke_launcher.ipynb` |
+| Artifacts / plots | `artifacts/`, `docs/plots/` |
+| Validation / utilities | `check-readiness.py`, `validate-submission.sh`, `temporary.md` |
+
+## Limitations and Next Steps
+
+Already proven:
+
+- the OpenEnv environment is live and validated
+- the Colab training path reruns on a `Tesla T4`
+- the strongest current smoke run beats the scripted baseline on end-to-end completion and mean total reward
+- reward, loss, and verifier artifacts are saved for review
+
+Still early:
+
+- the current result is still based on a small smoke evaluation rather than a broad curriculum
+- grounding is still tracked through a proxy and regresses slightly in the strongest run
+- drift adaptation rate and schema validation pass rate are not yet strong headline metrics in the saved smoke artifacts
+- the current reward evidence is stronger than mere pipeline proof, but not yet large-scale learning evidence
+
+Next steps:
+
+- strengthen reward shaping and curriculum so the trained policy can preserve its completion gains while improving grounding quality
+- expand generated tasks while keeping the Colab path rerunnable
+- surface drift/schema metrics more clearly in the evaluation artifacts
+- only then scale training beyond the small-model-first setup
+
+## Business Context
+
+Medical coding sits inside a much larger operational and financial surface area. In a [JAMA time-driven costing study](https://jamanetwork.com/journals/jama/fullarticle/2673148), billing and insurance-related activities were estimated at `$20` to `$215` per encounter and `3%` to `25%` of professional revenue, depending on encounter type, even in a large academic health system with a certified EHR. In Medicare Advantage, the [March 2024 MedPAC report](https://www.medpac.gov/document/chapter-13-estimating-medicare-advantage-coding-intensity-and-favorable-selection-march-2024-report/) estimated that Medicare would spend `22%` more for MA enrollees than comparable FFS beneficiaries in 2024, a projected `$83 billion` gap, with coding intensity alone projected to add about `$50 billion` in payments. A [2025 Health Affairs Scholar study](https://pubmed.ncbi.nlm.nih.gov/39822237/) found an enrollment-weighted mean coding inflation rate of `8.4%`, with `68.1%` of MA enrollees in contracts above Medicare's coding-intensity adjustment.
+
+Those studies do not imply that a lightweight benchmark solves system-level payment integrity or administrative waste. They do support a narrower claim: diagnosis coding and billing workflow quality are financially material, and a benchmark that rewards grounded, cautious coding behavior is studying a real operational problem rather than a toy label task.
+
+A benchmark that rewards only the final label risks training exactly the wrong behavior: hallucinating or overly aggressive agents that maximize apparent specificity without grounding. RVEDA RCM ARENA is designed to test the opposite behavior: grounded, stepwise coding decisions in which retrieval and verification are part of the task, not optional post-processing.
+
+RVEDA RCM ARENA is designed to answer a concrete research question:
 
 > Can an LLM agent behave like a cautious medical coder, rather than a one-shot label generator?
 
@@ -153,9 +211,9 @@ This framing matters for benchmark design:
 
 Established platforms such as FraudLens, Cotiviti, and Optum FWA address a different layer of the problem: post hoc detection of fraud, waste, abuse, and anomalous billing behavior across large claims datasets.
 
-Rveda addresses a different question. It is a **pre-deployment benchmark** for agentic medical coding systems, designed to test whether an AI model arrives at a code through grounded clinical reasoning before deployment.
+RVEDA RCM ARENA addresses a different question. It is a **pre-deployment benchmark** for agentic medical coding systems, designed to test whether an AI model arrives at a code through grounded clinical reasoning before deployment.
 
-That distinction is important. Statistical anomaly detection evaluates aggregate billing behavior across populations and claims streams; Rveda evaluates the reasoning trajectory of an individual AI agent as it searches, inspects evidence, and commits to an ICD-10 code. In that sense, Rveda is complementary to enterprise auditing systems: those platforms help catch problematic claims after the fact, while Rveda is designed to test whether an autonomous coding agent should be trusted before deployment.
+That distinction is important. Statistical anomaly detection evaluates aggregate billing behavior across populations and claims streams; RVEDA RCM ARENA evaluates the reasoning trajectory of an individual AI agent as it searches, inspects evidence, and commits to an ICD-10 code. In that sense, RVEDA RCM ARENA is complementary to enterprise auditing systems: those platforms help catch problematic claims after the fact, while RVEDA RCM ARENA is designed to test whether an autonomous coding agent should be trusted before deployment.
 
 ## Benchmark Task
 
@@ -175,7 +233,7 @@ This setup mimics the operational logic of medical coding review: reveal hidden 
 
 ## Architecture
 
-Rveda consists of three core layers: a local retrieval engine, an environment wrapper with grading logic, and a reference inference loop.
+RVEDA RCM ARENA consists of three core layers: a local retrieval engine, an environment wrapper with grading logic, and a reference inference loop.
 
 ### 1. Local ICD-10 Engine: `server/engine.py`
 
@@ -205,7 +263,7 @@ The environment also records a rich `GradingTrace`, including:
 - reward components,
 - conflict flags such as `Excludes1` mismatches.
 
-This makes Rveda useful not only for final-score benchmarking, but also for trajectory-level analysis of how an agent reasoned through the task.
+This makes RVEDA RCM ARENA useful not only for final-score benchmarking, but also for trajectory-level analysis of how an agent reasoned through the task.
 
 ### 3. Reference Inference Loop: `inference.py`
 
@@ -224,7 +282,7 @@ The loop is intentionally benchmark-friendly: it is deterministic in structure, 
 
 ## Benchmarking and Scoring
 
-Rveda is designed around two measurable axes:
+RVEDA RCM ARENA is designed around two measurable axes:
 
 - **Accuracy**: did the agent submit the correct ICD-10 code, or at least the correct code family?
 - **Efficiency**: how economically did the agent search, inspect, and commit within a bounded number of steps?
@@ -243,7 +301,7 @@ This reflects a realistic coding hierarchy: selecting the right diagnostic famil
 
 ### Efficiency Signal
 
-Rveda also scores process quality before submission.
+RVEDA RCM ARENA also scores process quality before submission.
 
 - Novel, productive searches earn small bonuses.
 - Relevant detail lookups earn additional reward.
@@ -383,7 +441,7 @@ During execution, `inference.py` prints benchmark-compatible logs in the form:
 
 ## Scope and Limitations
 
-Rveda is a **benchmarking environment**, not a production clinical coding system.
+RVEDA RCM ARENA is a **benchmarking environment**, not a production clinical coding system.
 
 - The current ICD-10 corpus is mock data.
 - Retrieval is lexical and SQLite-backed rather than semantic or ontology-scale.
@@ -394,7 +452,7 @@ Those constraints are a feature, not a flaw: they keep the benchmark controlled,
 
 ## Research Use Cases
 
-Rveda is well suited for:
+RVEDA RCM ARENA is well suited for:
 
 - benchmarking LLM agents on coding accuracy under constrained search,
 - comparing single-agent and multi-agent coding strategies,
