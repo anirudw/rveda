@@ -217,8 +217,19 @@ pycache/
 .codex/
 tester-bot.py
 check-readiness.py
+.uv-cache/
+.pytest-tmp/
+.pytest-run-tmp/
 
 temporary.md
 task-backlog.md
 MINIMUM_REQ.md
 *In.md
+
+# Generated local runtime/test state
+data.csv
+data/icd10.db
+data/*.db-journal
+data/write_probe.txt
+tmp_write_check.txt
+artifacts/pytesttmp/

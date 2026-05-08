@@ -1,6 +1,0 @@
-{
-  "status": "failed",
-  "error_type": "RuntimeError",
-  "error": "Optional training stack is missing. Install torch, datasets, accelerate, trl, and unsloth.",
-  "note": "This records a failed smoke attempt; it is not GRPO training proof."
-}

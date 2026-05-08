@@ -163,7 +163,7 @@ Quickstart:
 | Training script | `train_grpo_smoke.py` |
 | Notebook | `train_generated_v2_grpo_launcher.ipynb`, `train_grpo_smoke_launcher.ipynb` |
 | Artifacts / plots | `artifacts/`, `docs/plots/` |
-| Validation / utilities | `check-readiness.py`, `validate-submission.sh`, `temporary.md` |
+| Validation / utilities | `check-readiness.py`, `validate-submission.sh` |
 
 ## Limitations and Next Steps
 
@@ -435,7 +435,7 @@ During execution, `inference.py` prints benchmark-compatible logs in the form:
 - `inference.py`: OpenAI-client baseline loop
 - `tasks.json`: benchmark task suite
 - `icd10_mock.json`: mock ICD-10 source data
-- `data/icd10.db`: generated SQLite database used at runtime
+- `data/icd10.db`: generated SQLite database used at runtime; created locally and not committed
 - `docs/rveda-v2-contract.md`: frozen V2 Task 0.1 schema and verifiability contract
 - `examples/v2_task_minimal.json`: minimal V2 curriculum slice example
 

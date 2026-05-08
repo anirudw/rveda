@@ -105,7 +105,9 @@ class StepInfoMiddleware(BaseHTTPMiddleware):
             grading = payload.get("observation", {}).get("grading", {})
             payload["info"] = _sanitize_visible_grading(grading)
 
-        return JSONResponse(content=payload, status_code=response.status_code, headers=dict(response.headers))
+        headers = dict(response.headers)
+        headers.pop("content-length", None)
+        return JSONResponse(content=payload, status_code=response.status_code, headers=headers)
 
 
 app.add_middleware(StepInfoMiddleware)

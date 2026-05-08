@@ -91,6 +91,9 @@ def main() -> None:
         json={"action": {"action_type": "SEARCH", "query": "diabetes"}},
     )
     assert step_response.status_code == 200
+    content_length = step_response.headers.get("content-length")
+    if content_length is not None:
+        assert int(content_length) == len(step_response.content)
 
     payload = step_response.json()
     info = payload.get("info", {})
