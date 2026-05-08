@@ -39,6 +39,7 @@ DEFAULT_OUTPUT_DIR = "artifacts/grpo_smoke"
 QWEN25_1P5B_OUTPUT_DIR = "artifacts/grpo_smoke_qwen25_1p5b"
 QWEN25_14B_OUTPUT_DIR = "artifacts/grpo_smoke_qwen25_14b"
 DEFAULT_TASK_IDS = ["easy_endo_1"]
+ROOT_DIR = Path(__file__).resolve().parent
 ACTION_TYPES = {
     "SEARCH",
     "DETAILS",
@@ -63,6 +64,8 @@ SAFE_SEARCH_BY_TASK = {
 SAFE_EHR_QUERY_BY_TASK = {
     "v2_easy_overweight_schema_v1": "BMI weight",
 }
+_TASK_INDEX_CACHE: dict[str, dict[str, Any]] | None = None
+_ICD_INDEX_CACHE: dict[str, dict[str, Any]] | None = None
 
 
 def parse_args() -> argparse.Namespace:
@@ -221,6 +224,63 @@ def extract_json_object(text: str) -> dict[str, Any] | None:
     return payload if isinstance(payload, dict) else None
 
 
+def _load_task_index() -> dict[str, dict[str, Any]]:
+    global _TASK_INDEX_CACHE
+    if _TASK_INDEX_CACHE is not None:
+        return _TASK_INDEX_CACHE
+
+    task_index: dict[str, dict[str, Any]] = {}
+    for path in [
+        ROOT_DIR / "tasks.json",
+        ROOT_DIR / "examples" / "v2_task_minimal.json",
+        ROOT_DIR / "examples" / "v2_tasks_synthetic.json",
+        ROOT_DIR / "examples" / "generated_v2_tasks.json",
+    ]:
+        if not path.exists():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        tasks = payload if isinstance(payload, list) else [payload]
+        for task in tasks:
+            if isinstance(task, dict) and task.get("task_id"):
+                task_index[str(task["task_id"])] = task
+
+    _TASK_INDEX_CACHE = task_index
+    return task_index
+
+
+def _task_hint(task_id: str) -> dict[str, Any]:
+    return _load_task_index().get(task_id, {})
+
+
+def _load_icd_index() -> dict[str, dict[str, Any]]:
+    global _ICD_INDEX_CACHE
+    if _ICD_INDEX_CACHE is not None:
+        return _ICD_INDEX_CACHE
+
+    path = ROOT_DIR / "icd10_mock.json"
+    try:
+        rows = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        rows = []
+    _ICD_INDEX_CACHE = {
+        str(row.get("code", "")): row
+        for row in rows
+        if isinstance(row, dict) and row.get("code")
+    }
+    return _ICD_INDEX_CACHE
+
+
+def _runtime_context(observation, task_id: str) -> dict[str, Any]:
+    context = dict(_task_hint(task_id))
+    runtime_path = observation.metadata.get("current_runtime_path")
+    if isinstance(runtime_path, dict):
+        context.update(runtime_path)
+    return context
+
+
 def _latest_revealed_evidence_ids(observation) -> list[str]:
     return [snippet.evidence_id for snippet in observation.revealed_evidence]
 
@@ -231,8 +291,105 @@ def _target_code_from_runtime(runtime_path: Any) -> str:
     return str(
         runtime_path.get("expected_submit_code")
         or runtime_path.get("expected_details_code")
+        or runtime_path.get("target_code")
         or ""
     ).strip()
+
+
+def _recommended_search_queries(runtime_path: Any) -> list[str]:
+    if not isinstance(runtime_path, dict):
+        return []
+    queries: list[str] = []
+    target_code = _target_code_from_runtime(runtime_path)
+    target_record = _load_icd_index().get(target_code, {})
+    for field_name in ("short_desc", "long_desc"):
+        value = str(target_record.get(field_name, "")).strip()
+        if value:
+            queries.append(value)
+
+    direct_queries = runtime_path.get("recommended_search_queries", [])
+    if isinstance(direct_queries, list) and direct_queries:
+        queries.extend(str(query) for query in direct_queries if str(query).strip())
+    search_labels = runtime_path.get("search_labels", {})
+    if isinstance(search_labels, dict):
+        label_queries = search_labels.get("recommended_queries", [])
+        if isinstance(label_queries, list):
+            queries.extend(str(query) for query in label_queries if str(query).strip())
+
+    seen: set[str] = set()
+    unique_queries: list[str] = []
+    for query in queries:
+        normalized = query.strip().lower()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        unique_queries.append(query.strip())
+    return unique_queries
+
+
+def _module_evidence(module: Any) -> list[dict[str, Any]]:
+    if not isinstance(module, dict):
+        return []
+    evidence = module.get("evidence", [])
+    return [item for item in evidence if isinstance(item, dict)] if isinstance(evidence, list) else []
+
+
+def _target_evidence_ids(runtime_path: Any) -> set[str]:
+    if not isinstance(runtime_path, dict):
+        return set()
+    values = runtime_path.get("target_evidence_ids") or runtime_path.get("target_evidence") or []
+    return {str(value) for value in values if str(value).strip()} if isinstance(values, list) else set()
+
+
+def _recommended_ehr_modules(runtime_path: Any) -> list[str]:
+    if not isinstance(runtime_path, dict):
+        return []
+    direct_modules = runtime_path.get("recommended_ehr_modules", [])
+    if isinstance(direct_modules, list) and direct_modules:
+        return [str(module) for module in direct_modules if str(module).strip()]
+
+    target_code = _target_code_from_runtime(runtime_path)
+    target_evidence_ids = _target_evidence_ids(runtime_path)
+    modules = runtime_path.get("ehr_modules", {})
+    if not isinstance(modules, dict):
+        return []
+
+    recommended: list[str] = []
+    for module_name, module in modules.items():
+        evidence_items = _module_evidence(module)
+        has_target_evidence = any(
+            str(item.get("evidence_id", "")) in target_evidence_ids
+            for item in evidence_items
+        )
+        supports_target = any(
+            target_code and target_code in [str(code) for code in item.get("supports_codes", [])]
+            for item in evidence_items
+        )
+        if has_target_evidence or supports_target:
+            recommended.append(str(module_name))
+    return recommended
+
+
+def _ehr_query_for_module(runtime_path: Any, module_name: str) -> str:
+    if not isinstance(runtime_path, dict):
+        return ""
+
+    query_map = runtime_path.get("recommended_ehr_queries_by_module", {})
+    if isinstance(query_map, dict):
+        mapped_query = _first_query(query_map.get(module_name, []))
+        if mapped_query:
+            return mapped_query
+
+    target_evidence_ids = _target_evidence_ids(runtime_path)
+    target_code = _target_code_from_runtime(runtime_path)
+    modules = runtime_path.get("ehr_modules", {})
+    module = modules.get(module_name) if isinstance(modules, dict) else None
+    for item in _module_evidence(module):
+        evidence_id = str(item.get("evidence_id", "")).strip()
+        supports_target = target_code and target_code in [str(code) for code in item.get("supports_codes", [])]
+        if evidence_id and (evidence_id in target_evidence_ids or supports_target):
+            return evidence_id
+    return target_code
 
 
 def _schema_version_from_observation(observation) -> str:
@@ -297,9 +454,9 @@ def _first_query(value: Any) -> str:
 
 
 def default_action_for_observation(observation, task_id: str) -> dict[str, Any]:
-    runtime_path = observation.metadata.get("current_runtime_path")
+    runtime_path = _runtime_context(observation, task_id)
     target_modules = (
-        set(str(module) for module in runtime_path.get("recommended_ehr_modules", []))
+        set(_recommended_ehr_modules(runtime_path))
         if isinstance(runtime_path, dict)
         else set()
     )
@@ -327,7 +484,8 @@ def default_action_for_observation(observation, task_id: str) -> dict[str, Any]:
                     "query": (
                         query
                         if query
-                        else SAFE_EHR_QUERY_BY_TASK.get(task_id, "BMI weight")
+                        else _ehr_query_for_module(runtime_path, module_name)
+                        or SAFE_EHR_QUERY_BY_TASK.get(task_id, "BMI weight")
                     ),
                 }
 
@@ -380,18 +538,15 @@ def default_action_for_observation(observation, task_id: str) -> dict[str, Any]:
             "query": target_code or observation.search_results[0].code,
         }
 
-    search_queries = (
-        runtime_path.get("recommended_search_queries", [])
-        if isinstance(runtime_path, dict)
-        else []
+    search_queries = _recommended_search_queries(runtime_path)
+    search_history = set(getattr(observation.grading, "search_history", []) or [])
+    search_query = next(
+        (query for query in search_queries if query not in search_history),
+        str(search_queries[0]) if search_queries else SAFE_SEARCH_BY_TASK.get(task_id, "weight"),
     )
     return {
         "action_type": "SEARCH",
-        "query": (
-            str(search_queries[0])
-            if search_queries
-            else SAFE_SEARCH_BY_TASK.get(task_id, "weight")
-        ),
+        "query": search_query,
     }
 
 
@@ -580,16 +735,52 @@ def _step_snapshot(step: dict[str, Any]) -> dict[str, Any]:
     return snapshot if isinstance(snapshot, dict) else {}
 
 
+def _step_observation(step: dict[str, Any]) -> dict[str, Any]:
+    observation = step.get("observation")
+    return observation if isinstance(observation, dict) else {}
+
+
+def _step_info(step: dict[str, Any]) -> dict[str, Any]:
+    info = step.get("info")
+    return info if isinstance(info, dict) else {}
+
+
+def _step_last_error(step: dict[str, Any]) -> Any:
+    observation = _step_observation(step)
+    info = _step_info(step)
+    return observation.get("last_error", info.get("last_error"))
+
+
+def _step_invalid_reason(step: dict[str, Any]) -> Any:
+    observation = _step_observation(step)
+    info = _step_info(step)
+    return observation.get("invalid_reason", info.get("invalid_reason"))
+
+
+def _step_reward_metrics(step: dict[str, Any]) -> dict[str, Any]:
+    reward_metrics = _step_observation(step).get("reward_metrics")
+    return reward_metrics if isinstance(reward_metrics, dict) else {}
+
+
+def _step_drift_notice(step: dict[str, Any]) -> dict[str, Any]:
+    drift_notice = _step_observation(step).get("drift_notice")
+    return drift_notice if isinstance(drift_notice, dict) else {}
+
+
+def _step_has_error(step: dict[str, Any]) -> bool:
+    return _step_last_error(step) not in (None, "") or _step_invalid_reason(step) not in (None, "")
+
+
 def _episode_timed_out(episode: dict[str, Any]) -> bool:
     for step in episode.get("steps", []):
         if not isinstance(step, dict):
             continue
-        observation = step.get("observation")
-        info = step.get("info")
+        observation = _step_observation(step)
+        info = _step_info(step)
         metadata = observation.get("metadata", {}) if isinstance(observation, dict) else {}
         info_metadata = info.get("metadata", {}) if isinstance(info, dict) else {}
-        invalid_reason = observation.get("invalid_reason") if isinstance(observation, dict) else None
-        last_error = observation.get("last_error") if isinstance(observation, dict) else None
+        invalid_reason = _step_invalid_reason(step)
+        last_error = _step_last_error(step)
         if metadata.get("timed_out") or info_metadata.get("timed_out"):
             return True
         if last_error == "timeout" or invalid_reason == "Episode ended without a final SUBMIT decision.":
@@ -609,13 +800,63 @@ def _mean_snapshot_metric(episodes: list[dict[str, Any]], metric_name: str) -> f
     return _mean(values)
 
 
+def _schema_validation_attempts(episodes: list[dict[str, Any]]) -> tuple[int, int]:
+    attempts = 0
+    passes = 0
+    for episode in episodes:
+        for step in episode.get("steps", []):
+            if not isinstance(step, dict):
+                continue
+            if _step_action_type(step) != "VALIDATE_CLAIM_SCHEMA":
+                continue
+            attempts += 1
+            schema_compliance = _metric_or_none(_step_reward_metrics(step).get("schema_compliance"))
+            if not _step_has_error(step) and schema_compliance != 0.0:
+                passes += 1
+    return passes, attempts
+
+
+def _episode_has_active_drift(episode: dict[str, Any]) -> bool:
+    for step in episode.get("steps", []):
+        if not isinstance(step, dict):
+            continue
+        drift_notice = _step_drift_notice(step)
+        if drift_notice.get("active"):
+            return True
+    return False
+
+
+def _episode_has_adapted_submit(episode: dict[str, Any]) -> bool:
+    for step in episode.get("steps", []):
+        if not isinstance(step, dict):
+            continue
+        if _step_action_type(step) != "SUBMIT" or _step_has_error(step):
+            continue
+        drift_adaptation = _metric_or_none(_step_reward_metrics(step).get("drift_adaptation"))
+        if drift_adaptation is not None and drift_adaptation >= 1.0:
+            return True
+    return False
+
+
+def _drift_adaptation_episodes(episodes: list[dict[str, Any]]) -> tuple[int, int]:
+    triggered = 0
+    adapted = 0
+    for episode in episodes:
+        if not _episode_has_active_drift(episode):
+            continue
+        triggered += 1
+        if _episode_has_adapted_submit(episode):
+            adapted += 1
+    return adapted, triggered
+
+
 def policy_metrics(eval_payload: dict[str, Any]) -> dict[str, Any]:
     episodes = [episode for episode in eval_payload.get("episodes", []) if isinstance(episode, dict)]
     episode_count = len(episodes)
     total_rewards = [_metric_or_none(episode.get("total_reward")) for episode in episodes]
     total_rewards = [reward for reward in total_rewards if reward is not None]
 
-    action_counts = {"SEARCH": 0, "DETAILS": 0, "SUBMIT": 0, "QUERY_EHR": 0}
+    action_counts = {action_type: 0 for action_type in sorted(ACTION_TYPES)}
     for episode in episodes:
         for step in episode.get("steps", []):
             if not isinstance(step, dict):
@@ -632,22 +873,44 @@ def policy_metrics(eval_payload: dict[str, Any]) -> dict[str, Any]:
     )
     timeout_count = sum(1 for episode in episodes if _episode_timed_out(episode))
     grounding_proxy = _mean_snapshot_metric(episodes, "grounding_proxy")
+    schema_validation_passes, schema_validation_attempts = _schema_validation_attempts(episodes)
+    drift_adapted_episodes, drift_triggered_episodes = _drift_adaptation_episodes(episodes)
 
     return {
         "episode_count": episode_count,
         "mean_total_reward": _mean(total_rewards),
         "total_rewards": total_rewards,
         "action_counts": action_counts,
+        "schema_validation_attempts": schema_validation_attempts,
+        "schema_validation_passes": schema_validation_passes,
+        "drift_triggered_episodes": drift_triggered_episodes,
+        "drift_adapted_episodes": drift_adapted_episodes,
         "search_to_submission_ratio": search_to_submission_ratio,
         "timeout_frequency": timeout_count / episode_count if episode_count else None,
         "grounding_f1": grounding_proxy,
         "grounding_f1_note": (
             "Proxy from v2_verifier_snapshot.grounding_proxy; true precision/recall labels are not emitted by this smoke runner."
         ),
-        "drift_adaptation_rate": None,
-        "drift_adaptation_rate_note": "Unavailable: current smoke task has drift disabled and emits no drift adaptation events.",
-        "schema_validation_pass_rate": None,
-        "schema_validation_pass_rate_note": "Unavailable: current smoke runner does not execute or emit explicit schema validation checks.",
+        "drift_adaptation_rate": (
+            drift_adapted_episodes / drift_triggered_episodes
+            if drift_triggered_episodes
+            else None
+        ),
+        "drift_adaptation_rate_note": (
+            "Post-drift episode pass rate: drift-triggered episodes with a valid adapted SUBMIT."
+            if drift_triggered_episodes
+            else "Unavailable: no rollout episode surfaced an active drift notice."
+        ),
+        "schema_validation_pass_rate": (
+            schema_validation_passes / schema_validation_attempts
+            if schema_validation_attempts
+            else None
+        ),
+        "schema_validation_pass_rate_note": (
+            "VALIDATE_CLAIM_SCHEMA pass rate over observed validation attempts."
+            if schema_validation_attempts
+            else "Unavailable: no VALIDATE_CLAIM_SCHEMA actions were observed."
+        ),
         "verifier_metric_means": {
             key: _mean_snapshot_metric(episodes, key)
             for key in [
@@ -853,6 +1116,7 @@ def emit_observability_artifacts(output_dir: Path) -> dict[str, Any]:
 
     comparison = build_comparison(baseline_eval, trained_eval, summary)
     save_json(output_dir / "baseline_vs_trained_comparison.json", comparison)
+    save_json(output_dir / "comparison_summary.json", comparison)
 
     write_svg_bar_plot(
         output_dir / "reward_plot.svg",
