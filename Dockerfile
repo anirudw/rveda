@@ -69,11 +69,12 @@ COPY --from=builder /app/env /app/env
 ENV PATH="/app/.venv/bin:$PATH"
 
 
-# Copy the database into the same relative path used by server/engine.py
-COPY data/icd10.db /app/env/data/icd10.db
-
 # Set PYTHONPATH so imports work correctly
 ENV PYTHONPATH="/app/env:$PYTHONPATH"
+ENV RVEDA_DB_PATH="/app/env/data/icd10.db"
+
+# Build the generated SQLite database from the committed mock ICD-10 source.
+RUN python -c "from server.engine import initialize_db; initialize_db()"
 
 #TO see the web interface in HF
 ENV ENABLE_WEB_INTERFACE=true
